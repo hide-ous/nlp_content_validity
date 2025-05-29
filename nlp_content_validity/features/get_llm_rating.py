@@ -132,7 +132,7 @@ def main(dataset='colqitt_et_al'):
     responses_parsed = {(i[0], i[1]): i[2] for i in responses_parsed}
 
     os.makedirs(f'../../data/processed/{dataset}/', exist_ok=True)
-    with open(f'../../data/processed/{dataset}/gemini_responses.json', 'w+') as outfile:
+    with open(f'../../data/processed/{dataset}/llm_gemini.json', 'w+') as outfile:
         json.dump({i: {j: k} for (i, j), k in responses_parsed.items()}, outfile)
 
 
