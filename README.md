@@ -28,6 +28,17 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
 
 ## Replication Steps
 1. Place input files 
+
+
+- run `get_llm_rating.py`:
+  - input: the files `data/external/DATASET/[items,definitions,relations].csv`, where dataset is `colqitt_et_al` or `matthews_et_al`
+  - output: the file `data/processed/DATASET/gemini_responses.json`, structured as follows:
+    ```json
+    [{items_scale_id:{
+        definition_scale_id:[item_1_vs_definition_similarity, ..., item_n_vs_definition_similarity]}},
+    ...
+    ]
+    ```
 ## Project Organization
 
 ```

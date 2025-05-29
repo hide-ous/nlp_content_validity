@@ -1,6 +1,7 @@
 import json
 import re
 from dotenv import load_dotenv
+from google.genai.errors import ServerError
 from tqdm import tqdm
 import os
 import time
@@ -51,7 +52,7 @@ def query_gemini(client,
                 contents=prompt
             )
             return response
-        except (ResourceExhausted, InternalServerError, ServiceUnavailable) as e:
+        except (ResourceExhausted, InternalServerError, ServiceUnavailable, ServerError) as e:
             wait = 5 ** (attempt + 1)
             print(f"[Retry {attempt + 1}] Error: {e}. Waiting {wait}s...")
             time.sleep(wait)
@@ -96,9 +97,9 @@ def main(dataset='colqitt_et_al'):
         scale_focal = scale
         definition_focal = definitions[scale]
         scale_orbiting1 = orbiting_dict[scale]['orbiting_scale_1']
-        definition_orbiting1 = definitions[scale_orbiting1]
+        definition_orbiting1 = definitions.get(scale_orbiting1, None)
         scale_orbiting2 = orbiting_dict[scale]['orbiting_scale_2']
-        definition_orbiting2 = definitions[scale_orbiting2]
+        definition_orbiting2 = definitions.get(scale_orbiting2, None)
 
         items = itms.item.to_list()
         # item_codes = itms.index.to_list()
@@ -107,6 +108,7 @@ def main(dataset='colqitt_et_al'):
                                   (scale_orbiting1, definition_orbiting1),
                                   (scale_orbiting2, definition_orbiting2)):
             if ((scale_focal, scale) in responses) and (responses[(scale_focal, scale)] is not None): continue
+            if not definition: continue
 
             prompt = prompt_template.format(n_items=len(items), definition=definition, construct=scale,
                                             items='\n'.join(
@@ -134,4 +136,5 @@ def main(dataset='colqitt_et_al'):
 
 
 if __name__ == '__main__':
-    main()
+    main('colqitt_et_al')
+    main('matthews_et_al')
