@@ -2,7 +2,7 @@
 
 A short description of the project.
 
-## Project Set-Up
+## Python Dependencies
 This installation guide assumes you are on Windows on a GPU-endowed machine, with CUDA installed.
 
 1. Install python 3.10+
@@ -23,7 +23,8 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
     # copy everything from: C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.4\extras\visual_studio_integration\MSBuildExtensions To: C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft\VC\v160\BuildCustomizations
     pip install --no-cache-dir llama-cpp-python
     ```
-8. Create an API key to query Gemini and store it as the variable `GEMINIKEY` in a `.env` file in the root directory of the project (see the `.env.example` file) 
+## Project Set-Up
+- Create an API key to query Gemini and store it as the variable `GEMINIKEY` in a `.env` file in the root directory of the project (see the `.env.example` file)
 
 ## Project Organization
 
