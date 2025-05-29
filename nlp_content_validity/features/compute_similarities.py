@@ -56,77 +56,11 @@ word_embedding_wmd = dict()
 
 
 def main():
-    logger.info(f'computing sentence embedding similarity')
-    sentence_embedding_cosine_similarities = dict()
-    # model_name = 'lsa_model'
-    # model = LSA_model()
-    # item_df[f'{model_name}_sentence_embedding'] = item_df.item.apply(lambda x: model.transform([x])[0])
-    # sentence_embedding_cosine_similarities[model_name] = pd.DataFrame(cosine_similarity_from_embeddings(
-    #     item_df[f'{model_name}_sentence_embedding']), index=item_df.index.values, columns=item_df.index.values)
-    for model_name, model in (('sentence-t5-base', T5_model()), ('stsb-roberta-base', RoBERTa_model())):
-        item_df[f'{model_name}_sentence_embedding'] = item_df.item.apply(model.encode)
-        construct_df[f'{model_name}_sentence_embedding'] = construct_df.definition.apply(model.encode)
-        sentence_embedding_cosine_similarities[model_name] = pd.DataFrame(
-            util.cos_sim(item_df[f'{model_name}_sentence_embedding'], construct_df[f'{model_name}_sentence_embedding']),
-            index=item_df.index.values, columns=construct_df.index.values)
-    for model_name, sentence_embedding_cosine_similarity in sentence_embedding_cosine_similarities.items():
-        sentence_embedding_cosine_similarity.to_csv(
-            os.path.join(project_dir,
-                         f'data/processed/{dataset}/sentence_embedding_cosine_similarity_{model_name}.csv'))
-    item_df.to_csv(os.path.join(project_dir, f'data/processed/{dataset}/item_df.csv'))
-    item_df.to_pickle(os.path.join(project_dir, f'data/processed/{dataset}/item_df.pkl'))
-    construct_df.to_csv(os.path.join(project_dir, f'data/processed/{dataset}/construct_df.csv'))
-    construct_df.to_pickle(os.path.join(project_dir, f'data/processed/{dataset}/construct_df.pkl'))
 
-    # %%
-    logger.info(f'computing sts')
-
-    model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid(),
-                         device='cuda' if torch.cuda.is_available() else 'cpu')
-    inputs = [(q1, q2) for q1 in item_df.item for q2 in construct_df.definition]
-    outputs = model.predict(inputs)
-    sts = [(q1, q2, p) for (q1, q2), p in zip([(q1, q2) for q1 in item_df.index for q2 in construct_df.index], outputs)]
-    # sts+=[(q2, q1, p) for (q1, q2, p) in sts]
-
-    # %%
-    sts_comparisons = pd.DataFrame(sts).drop_duplicates(subset=[0, 1]).pivot(index=0, columns=1).fillna(1.)
-    sts_comparisons.columns = [i[1] for i in sts_comparisons.columns]
-    sts_comparisons.index = [i for i in sts_comparisons.index]
-
-    sts_comparisons.loc[item_df.index, construct_df.index].to_csv(
-        os.path.join(project_dir, f'data/processed/{dataset}/sts_comparisons.csv'))
-    # %%
-    item_name_pairs = list()
-    item_pairs = list()
-
-    pipe = pipeline("text-classification", model="tasksource/deberta-base-long-nli", top_k=None)
-    for q1_name, q1 in item_df.item.to_dict().items():
-        for q2_name, q2 in construct_df.definition.to_dict().items():
-            item_pairs.append(dict(text=q1, text_pair=q2))
-            item_name_pairs.append((q1_name, q2_name))
-    res = pipe(item_pairs)
-
-    df_nli = pd.DataFrame.from_records([{i['label']: i['score'] for i in j} for j in res], index=item_name_pairs)
-    df_nli.to_csv(os.path.join(project_dir, f'data/processed/{dataset}/nli_deberta_base.csv'))
-
-    deberta = pd.read_csv(f'../../data/processed/{dataset}/nli_deberta_base.csv', index_col=0).reset_index().rename(
-        columns={'index': 'question_group_pair'})
-    deberta['q1'] = deberta.question_group_pair.apply(lambda x: eval(x)[0])
-    deberta['q2'] = deberta.question_group_pair.apply(lambda x: eval(x)[1])
-    del deberta['question_group_pair']
-    deberta.head()
-    deberta.pivot_table(index='q1', columns='q2', values='entailment', fill_value=1).to_csv(
-        os.path.join(project_dir, f'data/processed/{dataset}/nli_deberta_base_entailment.csv'))
-    deberta.pivot_table(index='q1', columns='q2', values='neutral', fill_value=0).to_csv(
-        os.path.join(project_dir, f'data/processed/{dataset}/nli_deberta_base_neutral.csv'))
-    deberta.pivot_table(index='q1', columns='q2', values='contradiction', fill_value=0).to_csv(
-        os.path.join(project_dir, f'data/processed/{dataset}/nli_deberta_base_contradiction.csv'))
-
-    # %%
     llm = Llama(model_path="../../models/mistral-7b-instruct-v0.2.Q4_K_M.gguf", chat_format="llama-2",
                 n_gpu_layers=-1,
                 n_ctx=3584 if dataset == 'prompt' else 1200,
-                # verbose=False
+                verbose=False
                 )
     for same_response in [True, False]:
         results_mistral = list()
@@ -195,6 +129,24 @@ def sentence_model_similarity(definitions, df, focal_scales, orbiting_dict, mode
                                                        [definition_embeddings]).ravel().tolist()}})
     return results
 
+def sts_similarity(definitions, df, focal_scales, orbiting_dict, model):
+
+    results = list()
+    for scale_focal, items, scale, definition in iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
+        inputs = [(item, definition) for item in items]
+        outputs = model.predict(inputs)
+        results.append({scale_focal: {scale:
+                                          outputs.tolist()}})
+    return results
+
+def nli_similarity(definitions, df, focal_scales, orbiting_dict, model, relation='entailment'):
+    results = list()
+    for scale_focal, items, scale, definition in iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
+        inputs = [dict(text=item, text_pair=definition) for item in items]
+        res = model(inputs)
+        results.append({scale_focal: {scale:
+                                          [{j['label']: j['score'] for j in i}[relation] for i in res]}})
+    return results
 
 def iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
     for scale, itms in tqdm(df.groupby('scale'), total=df.scale.nunique()):
@@ -243,4 +195,21 @@ if __name__ == '__main__':
         logger.info(f'computing for model {model_name}')
         results = sentence_model_similarity(definitions, df, focal_scales, orbiting_dict, model)
         with open(f'../../data/interim/{dataset}/{model_name}.json', 'w') as f:
+            json.dump(results, f)
+
+    logger.info(f'3. TASK MODELS')
+    model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid(),
+                         device='cuda' if torch.cuda.is_available() else 'cpu')
+    model_name = 'task_sts_cross_encoder'
+    logger.info(f'computing for model {model_name}')
+    results = sts_similarity(definitions, df, focal_scales, orbiting_dict, model)
+    with open(f'../../data/interim/{dataset}/{model_name}.json', 'w') as f:
+        json.dump(results, f)
+
+    model = pipeline("text-classification", model="tasksource/deberta-base-long-nli", top_k=None)
+    model_name = 'task_nli_deberta'
+    logger.info(f'computing for model {model_name}')
+    for relation in ['entailment', 'neutral', 'contradiction']:
+        results = nli_similarity(definitions, df, focal_scales, orbiting_dict, model, relation)
+        with open(f'../../data/interim/{dataset}/{model_name}_{relation}.json', 'w') as f:
             json.dump(results, f)
