@@ -21,3 +21,4 @@ nlp_content_validity~=0.0.1
 google-api-core
 tqdm~=4.67.1
 google-genai
+jupyter
