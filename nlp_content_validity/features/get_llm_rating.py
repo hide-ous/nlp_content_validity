@@ -1,6 +1,5 @@
 import json
 import re
-import pandas as pd
 from dotenv import load_dotenv
 from tqdm import tqdm
 import os
@@ -10,8 +9,11 @@ from google import genai
 
 from google.api_core.exceptions import ResourceExhausted, InternalServerError, ServiceUnavailable
 
+from nlp_content_validity.data.read_data import read_dataset
+
 MODEL = "gemini-2.5-flash-preview-04-17"
 _last_request_time = 0
+
 
 def query_gemini(client,
                  prompt: str,
@@ -61,22 +63,7 @@ def main(dataset='colqitt_et_al'):
     load_dotenv()
     client = genai.Client(api_key=os.environ["GEMINIKEY"])
 
-
-
-    df_orbiting = pd.read_csv('../../data/external/%s/relations.csv' % dataset)
-    orbiting_dict = df_orbiting[['focal_scale', 'orbiting_scale_1', 'orbiting_scale_2']].set_index(
-        'focal_scale').to_dict(
-        orient='index')
-    focal_scales = list(sorted(orbiting_dict.keys()))
-    df = pd.read_csv('../../data/external/%s/items.csv' % dataset)
-    df.columns = ['scale', 'code', 'item']
-    df.set_index('code', inplace=True)
-
-    construct_df = pd.read_csv('../../data/external/%s/definitions.csv' % dataset)
-    construct_df.columns = ['code', 'definition']
-    construct_df.set_index('code', inplace=True)
-    construct_df = construct_df[['definition']]
-    definitions = construct_df.definition.to_dict()
+    definitions, df, focal_scales, orbiting_dict = read_dataset(dataset)
 
     prompt_template = """
     Please read the instructions very carefully. The questions are unique to survey measurement development and require detailed attention. 

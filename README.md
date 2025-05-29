@@ -1,6 +1,6 @@
 # nlp_content_validity
 
-A short description of the project.
+Replication material for the paper _"Title to be Defined"_.
 
 ## Python Dependencies
 This installation guide assumes you are on Windows on a GPU-endowed machine, with CUDA installed.
@@ -26,6 +26,8 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
 ## Project Set-Up
 - Create an API key to query Gemini and store it as the variable `GEMINIKEY` in a `.env` file in the root directory of the project (see the `.env.example` file)
 
+## Replication Steps
+1. Place input files 
 ## Project Organization
 
 ```
