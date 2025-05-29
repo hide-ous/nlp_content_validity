@@ -19,5 +19,5 @@ def read_dataset(dataset):
 
 
 if __name__ == '__main__':
-    # print(read_dataset('colqitt_et_al'))
+    print(read_dataset('colqitt_et_al'))
     print(read_dataset('matthews_et_al'))
