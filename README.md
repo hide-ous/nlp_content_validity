@@ -1,10 +1,29 @@
 # nlp_content_validity
 
-<a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
-    <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
-</a>
-
 A short description of the project.
+
+## Project Set-Up
+This installation guide assumes you are on Windows on a GPU-endowed machine, with CUDA installed.
+
+1. Install python 3.10+
+2. Clone the project: `git clone ...`
+3. Enter the project directory `cd nlp_content_validity`
+4. *\[Optional but highly encouraged\]* create a virtual environment `python -m venv .venv` 
+5. *\[Optional but highly encouraged\]* activate the virtual environment. On Windows: 
+6. Install python dependencies: `pip install -r requirements.txt`
+7. Download Mistral and install Llama cpp wrapper. On Windows:
+    ```ps1
+    huggingface-cli download TheBloke/Mistral-7B-Instruct-v0.2-GGUF mistral-7b-instruct-v0.2.Q4_K_M.gguf --local-dir models/ 
+    
+    # on *nix
+    # $env:CMAKE_ARGS="-DGGML_CUDA=on" pip install llama-cpp-python
+    # on powershell:
+    $env:CMAKE_ARGS = "-DGGML_CUDA=on"
+    
+    # copy everything from: C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.4\extras\visual_studio_integration\MSBuildExtensions To: C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft\VC\v160\BuildCustomizations
+    pip install --no-cache-dir llama-cpp-python
+    ```
+8. Create an API key to query Gemini and store it as the variable `GEMINIKEY` in a `.env` file in the root directory of the project (see the `.env.example` file) 
 
 ## Project Organization
 
@@ -59,3 +78,7 @@ A short description of the project.
 
 --------
 
+
+<a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
+    <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
+</a>

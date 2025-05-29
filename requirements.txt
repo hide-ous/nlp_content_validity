@@ -1,4 +1,22 @@
+--extra-index-url https://download.pytorch.org/whl/cu118
+
 pip
-python-dotenv
+python-dotenv~=1.1.0
 ruff
 -e .
+
+torch~=2.7.0+cu118
+torchvision
+torchaudio
+transformers~=4.52.3
+numpy~=1.26.4
+gensim~=4.3.3
+scikit-learn~=1.6.1
+POT
+sentence-transformers
+pandas~=2.2.3
+pyemd~=1.0.0
+tiktoken~=0.9.0
+nlp_content_validity~=0.0.1
+google-api-core
+tqdm~=4.67.1
