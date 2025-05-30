@@ -37,8 +37,10 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
      ...
      ]
      ```
-   - run `compute_similarities.py`
-   - run `get_llm_rating.py`
+   - run `compute_similarities.py` from `nlp_content_validity/features`
+   - run `get_llm_rating.py` from `nlp_content_validity/features`
+   - run `aggregate_similarities.py` from `nlp_content_validity/models`
+   - run `correlate_similarities.py` from `nlp_content_validity/models`
 
 ## Project Organization
 

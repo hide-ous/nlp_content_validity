@@ -130,6 +130,8 @@ def main(dataset='colqitt_et_al'):
     responses_parsed = [(x[0], x[1], [int(re.sub(r'[^0-9]', '', score)) for score in x[2].split()]) for x in
                         responses_parsed]
     responses_parsed = {(i[0], i[1]): i[2] for i in responses_parsed}
+    #FIXME: cases where a single value is returned
+    #{'focal': [7632], 'orbiting_scale_1': [2, 2, 1, 1], 'orbiting_scale_2': [1, 1, 1, 1]}
 
     os.makedirs(f'../../data/interim/{dataset}/', exist_ok=True)
 

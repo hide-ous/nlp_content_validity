@@ -18,7 +18,7 @@ def main(dataset='colqitt_et_al'):
                 r, p = spearmanr(df_rel[c1], df_sim[c2])
                 results.append((c1, c2, r, p, model))
     pd.DataFrame(results, columns=['validity_metric', 'nlp_metric', 'r', 'p', 'model']).to_csv(
-        f'../../data/processed/{dataset}_correlations.csv')
+        f'../../data/processed/{dataset}_correlations.csv', index=False)
 
 
 if __name__ == '__main__':
