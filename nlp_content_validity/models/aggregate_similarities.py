@@ -27,7 +27,9 @@ def htd_aggregate(data):
     return {scale: (2 * np.sum(vals['focal']) - np.sum(vals['orbiting_scale_1']) - np.sum(vals['orbiting_scale_2'])) / (
             2 * len(vals['focal'])) for scale, vals in data.items()}
 
-
+# def htd_aggregate2(data):
+#     return {scale: np.mean([np.mean(vals['focal'])-np.mean(vals[orbiting]) for orbiting in ('orbiting_scale_1', 'orbiting_scale_2')])/6.
+#             for scale, vals in data.items()}
 def main(dataset='colqitt_et_al'):
     basedir = f'../../data/interim/{dataset}'
     out_dir = f'../../data/processed/{dataset}'
@@ -54,6 +56,7 @@ def main(dataset='colqitt_et_al'):
                 aggregates[func_name + '_rank'] = focal_rank_aggregate(data_dict, func=func)
         if dataset == 'colqitt_et_al':
             aggregates['htd'] = htd_aggregate(data_dict)
+            # aggregates['htd2'] = htd_aggregate2(data_dict)
         pd.DataFrame(aggregates).to_csv(f'{out_dir}/{model_name}.csv')
 
 
