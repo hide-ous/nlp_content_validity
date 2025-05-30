@@ -3,7 +3,7 @@ import pandas as pd
 import seaborn as sns
 
 
-def plot_facetgrid(dataset, store=True):
+def plot_facetgrid(dataset, store=True, show=False):
     df = pd.read_csv(f'../../data/processed/{dataset}_correlations.csv')
     df['abs_corr'] = df.r.apply(np.abs)
     df['family'] = df.model.apply(lambda x: x.split('_')[0])
@@ -24,7 +24,8 @@ def plot_facetgrid(dataset, store=True):
     g.figure.tight_layout()
     if store:
         g.figure.savefig(f'../../reports/figures/{dataset}_correlations.png', bbox_inches='tight', dpi=300)
-    g.figure.show()
+    if show:
+        g.figure.show()
 
 
 if __name__ == '__main__':
