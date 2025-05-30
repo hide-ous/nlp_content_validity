@@ -27,7 +27,7 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
 - Create an API key to query Gemini and store it as the variable `GEMINIKEY` in a `.env` file in the root directory of the project (see the `.env.example` file)
 
 ## Replication Steps
-1. Place input files
+1. Place input files in the input folder
    - input: the files `data/external/DATASET/[items,definitions,relations].csv`, where dataset is `colqitt_et_al` or `matthews_et_al`
 2. Compute item-definition similarities
    - output: the file `data/processed/DATASET/*.json`, structured as follows:
@@ -39,8 +39,11 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
      ```
    - run `compute_similarities.py` from `nlp_content_validity/features`
    - run `get_llm_rating.py` from `nlp_content_validity/features`
+3. Aggregate similarities and correlate them with validity indicators 
    - run `aggregate_similarities.py` from `nlp_content_validity/models`
    - run `correlate_similarities.py` from `nlp_content_validity/models`
+4. Plot results
+   - run `plot_correlations.py` from `nlp_content_validity/visualization`
 
 ## Project Organization
 
