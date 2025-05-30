@@ -119,8 +119,8 @@ def iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
             yield scale_focal, items, scale, definition
 
 
-def main(dataset):
-    os.makedirs(f'../../data/interim/{dataset}/', exist_ok=True)
+def main(dataset, basedir='../../data/interim'):
+    os.makedirs(f'{basedir}/{dataset}/', exist_ok=True)
     definitions, df, focal_scales, orbiting_dict = read_dataset(dataset)
     logger.info(f'1. WORD MODELS')
 
@@ -133,13 +133,13 @@ def main(dataset):
         for model_name, model in dict(word_ft=model_ft, word_w2v=model_w2v, word_glove=model_glove).items():
             logger.info(f'computing for model {model_name} with {"cosine" if cosine else "wmd"}')
             results = word_model_similarity(definitions, df, focal_scales, orbiting_dict, model, cosine)
-            with open(f'../../data/interim/{dataset}/{model_name}_{"cosine" if cosine else "wmd"}.json', 'w') as f:
+            with open(f'{basedir}/{dataset}/{model_name}_{"cosine" if cosine else "wmd"}.json', 'w') as f:
                 json.dump(results, f)
     logger.info(f'2. SENTENCE MODELS')
     for model_name, model in (('sentence_t5', T5_model()), ('sentence_roberta', RoBERTa_model())):
         logger.info(f'computing for model {model_name}')
         results = sentence_model_similarity(definitions, df, focal_scales, orbiting_dict, model)
-        with open(f'../../data/interim/{dataset}/{model_name}.json', 'w') as f:
+        with open(f'{basedir}/{dataset}/{model_name}.json', 'w') as f:
             json.dump(results, f)
 
     logger.info(f'3. TASK MODELS')
@@ -148,7 +148,7 @@ def main(dataset):
     model_name = 'task_sts_cross_encoder'
     logger.info(f'computing for model {model_name}')
     results = sts_similarity(definitions, df, focal_scales, orbiting_dict, model)
-    with open(f'../../data/interim/{dataset}/{model_name}.json', 'w') as f:
+    with open(f'{basedir}/{dataset}/{model_name}.json', 'w') as f:
         json.dump(results, f)
 
     model = pipeline("text-classification", model="tasksource/deberta-base-long-nli", top_k=None)
@@ -156,7 +156,7 @@ def main(dataset):
     logger.info(f'computing for model {model_name}')
     for relation in ['entailment', 'neutral', 'contradiction']:
         results = nli_similarity(definitions, df, focal_scales, orbiting_dict, model, relation)
-        with open(f'../../data/interim/{dataset}/{model_name}_{relation}.json', 'w') as f:
+        with open(f'{basedir}/{dataset}/{model_name}_{relation}.json', 'w') as f:
             json.dump(results, f)
 
     logger.info(f'4. LLM MODELS')
@@ -168,7 +168,7 @@ def main(dataset):
     model_name = 'llm_mistral'
     logger.info(f'computing for model {model_name}')
     results = llm_similarity(definitions, df, focal_scales, orbiting_dict, model)
-    with open(f'../../data/interim/{dataset}/{model_name}.json', 'w') as f:
+    with open(f'{basedir}/{dataset}/{model_name}.json', 'w') as f:
         json.dump(results, f)
 
 
