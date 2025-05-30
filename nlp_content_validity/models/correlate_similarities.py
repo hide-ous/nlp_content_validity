@@ -15,7 +15,7 @@ def main(dataset='colqitt_et_al'):
         df_sim = pd.read_csv(f'{base_dir}/{fname}', index_col=0)
         for c1 in df_rel.columns:
             for c2 in df_sim.columns:
-                r, p = spearmanr(df_rel[c1], df_sim[c2])
+                r, p = spearmanr(df_rel[c1], df_sim.loc[df_rel.index, c2])
                 results.append((c1, c2, r, p, model))
     pd.DataFrame(results, columns=['validity_metric', 'nlp_metric', 'r', 'p', 'model']).to_csv(
         f'../../data/processed/{dataset}_correlations.csv', index=False)
