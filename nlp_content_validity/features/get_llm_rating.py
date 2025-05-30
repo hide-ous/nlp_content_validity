@@ -1,7 +1,7 @@
 import json
 import re
 from dotenv import load_dotenv
-from google.genai.errors import ServerError
+from google.genai.errors import ServerError, ClientError
 from tqdm import tqdm
 import os
 import time
@@ -76,7 +76,7 @@ def query_gemini(client,
                 contents=prompt
             )
             return response
-        except (ResourceExhausted, InternalServerError, ServiceUnavailable, ServerError) as e:
+        except (ResourceExhausted, InternalServerError, ServiceUnavailable, ServerError, ClientError) as e:
             wait = 5 ** (attempt + 1)
             print(f"[Retry {attempt + 1}] Error: {e}. Waiting {wait}s...")
             time.sleep(wait)
@@ -131,9 +131,10 @@ def main(dataset='colqitt_et_al'):
                         responses_parsed]
     responses_parsed = {(i[0], i[1]): i[2] for i in responses_parsed}
 
-    os.makedirs(f'../../data/processed/{dataset}/', exist_ok=True)
-    with open(f'../../data/processed/{dataset}/llm_gemini.json', 'w+') as outfile:
-        json.dump({i: {j: k} for (i, j), k in responses_parsed.items()}, outfile)
+    os.makedirs(f'../../data/interim/{dataset}/', exist_ok=True)
+
+    with open(f'../../data/interim/{dataset}/llm_gemini.json', 'w+') as outfile:
+        json.dump([{i: {j: k}} for (i, j), k in responses_parsed.items()], outfile)
 
 
 if __name__ == '__main__':

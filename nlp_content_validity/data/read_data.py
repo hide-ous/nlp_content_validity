@@ -1,6 +1,8 @@
 import pandas as pd
 
-
+DATASET_METRICS = {'colqitt_et_al': ['alpha', 'psa', 'csv', 'htc', 'htd'],
+                   'matthews_et_al': ['sme_definitional_adequacy_mean']
+                   }
 def read_dataset(dataset):
     df_orbiting = pd.read_csv('../../data/external/%s/relations.csv' % dataset)
     orbiting_dict = df_orbiting[['focal_scale', 'orbiting_scale_1', 'orbiting_scale_2']].set_index(
@@ -17,6 +19,10 @@ def read_dataset(dataset):
     definitions = construct_df.definition.to_dict()
     return definitions, df, focal_scales, orbiting_dict
 
+
+def read_validity(dataset):
+    df_rel = pd.read_csv('../../data/external/%s/relations.csv' % dataset)
+    return df_rel.set_index('focal_scale')[DATASET_METRICS[dataset]]
 
 if __name__ == '__main__':
     print(read_dataset('colqitt_et_al'))

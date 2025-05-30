@@ -27,18 +27,19 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
 - Create an API key to query Gemini and store it as the variable `GEMINIKEY` in a `.env` file in the root directory of the project (see the `.env.example` file)
 
 ## Replication Steps
-1. Place input files 
+1. Place input files
+   - input: the files `data/external/DATASET/[items,definitions,relations].csv`, where dataset is `colqitt_et_al` or `matthews_et_al`
+2. Compute item-definition similarities
+   - output: the file `data/processed/DATASET/*.json`, structured as follows:
+     ```json
+     [{items_scale_id:{
+         definition_scale_id:[item_1_vs_definition_similarity, ..., item_n_vs_definition_similarity]}},
+     ...
+     ]
+     ```
+   - run `compute_similarities.py`
+   - run `get_llm_rating.py`
 
-
-- run `get_llm_rating.py`:
-  - input: the files `data/external/DATASET/[items,definitions,relations].csv`, where dataset is `colqitt_et_al` or `matthews_et_al`
-  - output: the file `data/processed/DATASET/gemini_responses.json`, structured as follows:
-    ```json
-    [{items_scale_id:{
-        definition_scale_id:[item_1_vs_definition_similarity, ..., item_n_vs_definition_similarity]}},
-    ...
-    ]
-    ```
 ## Project Organization
 
 ```
@@ -74,20 +75,13 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
 │
 └── nlp_content_validity   <- Source code for use in this project.
     │
-    ├── __init__.py             <- Makes nlp_content_validity a Python module
+    ├── data/              <- Scripts to download or generate data
     │
-    ├── config.py               <- Store useful variables and configuration
+    ├── features/          <- Code to create features for modeling
     │
-    ├── dataset.py              <- Scripts to download or generate data
+    ├── models/            <- Code for modeling
     │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
+    └── visualization/     <- Code to create visualizations
 ```
 
 --------
