@@ -18,8 +18,17 @@ def focal_rank_aggregate(data, func=np.mean):
         stacked = np.hstack((np.array(vals['focal']).reshape((-1, 1)),
                              np.array(vals['orbiting_scale_1']).reshape((-1, 1)),
                              np.array(vals['orbiting_scale_2']).reshape((-1, 1))))
+
+        # if one wants the aggregate rank
         focal_rank = np.argsort(stacked, axis=1, )[:, 0]
         to_return[scale] = func(focal_rank)
+
+        # # if one wants to first aggregate within definition and then rank
+        # to_return[scale] = np.argsort(func(stacked, axis=0))[0]
+
+        # # if one wants to compare the aggregate on focal vs. *any* orbiting
+        # agg = func(stacked, axis=0)
+        # to_return[scale] = int(agg[0] == np.min(agg))
     return to_return
 
 
