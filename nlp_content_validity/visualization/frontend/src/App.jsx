@@ -2,157 +2,160 @@ import React, { useState, useEffect } from "react";
 
 const API_BASE = "http://localhost:8002/api";
 
-function App() {
-  const [examples, setExamples] = useState([]);
-  const [selectedExample, setSelectedExample] = useState(null);
-
+export default function ScaleValidityApp() {
+  const [models, setModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState("");
   const [targetDef, setTargetDef] = useState("");
-  const [adversaries, setAdversaries] = useState([""]);
+  const [adversaries, setAdversaries] = useState(["", ""]);
   const [items, setItems] = useState([""]);
-  const [itemScores, setItemScores] = useState([]);
-  const [predictedScore, setPredictedScore] = useState(null);
-  const [trueScore, setTrueScore] = useState(null);
+  const [scores, setScores] = useState(null);
   const [edited, setEdited] = useState(false);
 
-  // Load example IDs
   useEffect(() => {
-    fetch(`${API_BASE}/examples`)
+    fetch(`${API_BASE}/models`)
       .then((res) => res.json())
-      .then(setExamples);
+      .then(setModels);
   }, []);
 
-  const loadExample = (id) => {
-    fetch(`${API_BASE}/examples/${id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setSelectedExample(id);
-        setTargetDef(data.target_def);
-        setAdversaries(data.adversaries);
-        setItems(data.items);
-        setTrueScore(data.true_score);
-        setPredictedScore(null);
-        setItemScores([]);
-        setEdited(false);
-      });
-  };
-
   const handlePredict = async () => {
+    const payload = {
+      model_name: selectedModel,
+      target_def: targetDef,
+      adversaries: adversaries.filter(a => a.trim() !== ""),
+      items: items.filter(i => i.trim() !== "")
+    };
+
     const res = await fetch(`${API_BASE}/predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        target_def: targetDef,
-        adversaries,
-        items,
-      }),
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
-    setPredictedScore(data.predicted_score);
-    setItemScores(data.item_scores);
+    setScores(data);
     setEdited(false);
   };
 
-  const handleItemChange = (index, value) => {
-    const newItems = [...items];
-    newItems[index] = value;
-    setItems(newItems);
+  const handleClear = () => {
+    setSelectedModel("");
+    setTargetDef("");
+    setAdversaries(["", ""]);
+    setItems([""]);
+    setScores(null);
+    setEdited(false);
+  };
+
+  const handleItemChange = (idx, val) => {
+    const updated = [...items];
+    updated[idx] = val;
+    setItems(updated);
     setEdited(true);
   };
 
-  const addItem = () => {
+  const handleAdversaryChange = (idx, val) => {
+    const updated = [...adversaries];
+    updated[idx] = val;
+    setAdversaries(updated);
+    setEdited(true);
+  };
+
+  const handleAddItem = () => {
     setItems([...items, ""]);
-    setItemScores([]);
     setEdited(true);
   };
 
-  const deleteItem = (index) => {
-    const newItems = items.filter((_, i) => i !== index);
-    setItems(newItems);
-    setItemScores([]);
+  const handleDeleteItem = (idx) => {
+    const updated = items.filter((_, i) => i !== idx);
+    setItems(updated);
     setEdited(true);
   };
 
   return (
-    <div style={{ padding: "1em", maxWidth: "800px", margin: "auto" }}>
-      <h2>Scale Validity Predictor</h2>
+    <div className="max-w-2xl mx-auto p-4 space-y-6">
+      <h1 className="text-xl font-bold">Scale Validity via Sentence Similarity</h1>
 
-      <label>Load Example:</label>
-      <select onChange={(e) => loadExample(e.target.value)} value={selectedExample || ""}>
-        <option value="">-- Select Example --</option>
-        {examples.map((id) => (
-          <option key={id} value={id}>{id}</option>
-        ))}
-      </select>
+      <div className="space-y-2">
+        <label className="font-semibold">1. Select Similarity Model</label>
+        <select
+          value={selectedModel}
+          onChange={(e) => {
+            setSelectedModel(e.target.value);
+            setEdited(true);
+          }}
+          className="w-full border rounded p-2"
+        >
+          <option value="">-- Choose a model --</option>
+          {models.map((model) => (
+            <option key={model} value={model}>{model}</option>
+          ))}
+        </select>
+      </div>
 
-      <div style={{ marginTop: "1em" }}>
-        <label>Focal Construct Definition:</label>
+      <div className="space-y-2">
+        <label className="font-semibold">2. Target Definition</label>
         <textarea
+          className="w-full border rounded p-2"
+          rows={3}
           value={targetDef}
           onChange={(e) => {
             setTargetDef(e.target.value);
             setEdited(true);
           }}
-          rows={3}
-          style={{ width: "100%" }}
         />
+        {adversaries.map((adv, idx) => (
+          <div key={idx}>
+            <label className="font-semibold">Adversary {idx + 1} Definition</label>
+            <textarea
+              className="w-full border rounded p-2"
+              rows={2}
+              value={adv}
+              onChange={(e) => handleAdversaryChange(idx, e.target.value)}
+            />
+          </div>
+        ))}
       </div>
 
-      {adversaries.map((adv, idx) => (
-        <div key={idx}>
-          <label>Adversary {idx + 1} Definition:</label>
-          <textarea
-            value={adv}
-            onChange={(e) => {
-              const updated = [...adversaries];
-              updated[idx] = e.target.value;
-              setAdversaries(updated);
-              setEdited(true);
-            }}
-            rows={2}
-            style={{ width: "100%" }}
-          />
-        </div>
-      ))}
-
-      <h4>Scale Items</h4>
-      {items.map((item, idx) => (
-        <div key={idx} style={{ display: "flex", marginBottom: "0.5em" }}>
-          <input
-            type="text"
-            value={item}
-            onChange={(e) => handleItemChange(idx, e.target.value)}
-            style={{ flex: 1, marginRight: "0.5em" }}
-          />
-          <button onClick={() => deleteItem(idx)}>Delete</button>
-          {itemScores.length > 0 && (
-            <span style={{ marginLeft: "1em" }}>
-              Score: {itemScores[idx]?.toFixed(2)}
-            </span>
-          )}
-        </div>
-      ))}
-      <button onClick={addItem}>+ Add Item</button>
-
-      <div style={{ marginTop: "1em" }}>
-        <button onClick={handlePredict}>Predict Validity</button>
+      <div className="space-y-2">
+        <label className="font-semibold">3. Scale Items</label>
+        {items.map((item, idx) => (
+          <div key={idx} className="flex items-center space-x-2 mb-1">
+            <input
+              value={item}
+              onChange={(e) => handleItemChange(idx, e.target.value)}
+              className="flex-grow border rounded p-2"
+            />
+            <button onClick={() => handleDeleteItem(idx)} className="text-red-500">✕</button>
+            {scores?.item_scores?.[idx] != null && (
+              <span className="text-sm text-gray-600">
+                Score: {scores.item_scores[idx].toFixed(3)}
+              </span>
+            )}
+          </div>
+        ))}
+        <button onClick={handleAddItem} className="text-blue-600">+ Add Item</button>
       </div>
 
-      {edited && (
-        <p style={{ color: "orange" }}>
-          Inputs have been edited since last prediction.
-        </p>
-      )}
+      <div className="space-x-4">
+        <button
+          onClick={handlePredict}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Predict
+        </button>
+        <button
+          onClick={handleClear}
+          className="bg-gray-300 px-4 py-2 rounded"
+        >
+          Clear
+        </button>
+        {edited && <span className="text-yellow-600">Inputs edited since last prediction</span>}
+      </div>
 
-      {predictedScore !== null && (
-        <div style={{ marginTop: "1em" }}>
-          <h4>Predicted Validity Score: {predictedScore.toFixed(2)}</h4>
-          {trueScore !== null && (
-            <p>Ground Truth Score: {trueScore.toFixed(2)}</p>
-          )}
+      {scores && (
+        <div className="mt-6">
+          <p className="font-semibold">Model Used: {scores.model_used}</p>
+          <p className="font-semibold">Aggregated Validity Score: {scores.aggregated_score.toFixed(3)}</p>
         </div>
       )}
     </div>
   );
 }
-
-export default App;

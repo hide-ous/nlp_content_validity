@@ -39,7 +39,7 @@ def htd_aggregate(data):
 # def htd_aggregate2(data):
 #     return {scale: np.mean([np.mean(vals['focal'])-np.mean(vals[orbiting]) for orbiting in ('orbiting_scale_1', 'orbiting_scale_2')])/6.
 #             for scale, vals in data.items()}
-def main(dataset='colqitt_et_al'):
+def main(dataset='colquitt_et_al'):
     basedir = f'../../data/interim/{dataset}'
     out_dir = f'../../data/processed/{dataset}'
     os.makedirs(out_dir, exist_ok=True)
@@ -61,14 +61,14 @@ def main(dataset='colqitt_et_al'):
         for func, func_name in (
                 (np.mean, "mean_focal"), (np.min, "min_focal"), (np.max, "max_focal"), (np.median, "median_focal")):
             aggregates[func_name] = focal_aggregate(data_dict, func=func)
-            if dataset == 'colqitt_et_al':
+            if dataset == 'colquitt_et_al':
                 aggregates[func_name + '_rank'] = focal_rank_aggregate(data_dict, func=func)
-        if dataset == 'colqitt_et_al':
+        if dataset == 'colquitt_et_al':
             aggregates['htd'] = htd_aggregate(data_dict)
             # aggregates['htd2'] = htd_aggregate2(data_dict)
         pd.DataFrame(aggregates).to_csv(f'{out_dir}/{model_name}.csv')
 
 
 if __name__ == '__main__':
-    main('colqitt_et_al')
+    main('colquitt_et_al')
     main('matthews_et_al')

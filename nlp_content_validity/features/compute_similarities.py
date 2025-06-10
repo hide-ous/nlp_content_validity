@@ -173,5 +173,5 @@ def main(dataset, basedir='../../data/interim'):
 
 
 if __name__ == '__main__':
-    main('colqitt_et_al')
+    main('colquitt_et_al')
     main('matthews_et_al')

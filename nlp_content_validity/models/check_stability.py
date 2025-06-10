@@ -9,5 +9,5 @@ def main(dataset, nruns=10):
 
 
 if __name__ == '__main__':
-    main('colqitt_et_al')
+    main('colquitt_et_al')
     main('matthews_et_al')

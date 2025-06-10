@@ -6,6 +6,7 @@ import seaborn as sns
 def plot_facetgrid(dataset, store=True, show=False):
     df = pd.read_csv(f'../../data/processed/{dataset}_correlations.csv')
     df['abs_corr'] = df.r.apply(np.abs)
+    # df['abs_corr'] = df.r
     df['family'] = df.model.apply(lambda x: x.split('_')[0])
     df.nlp_metric = df.nlp_metric.apply(lambda x: x if x != 'htd' else 'htd_nlp')
     df.validity_metric = df.validity_metric.apply(lambda x: x if not x.startswith('sme') else x[4:])
@@ -30,5 +31,5 @@ def plot_facetgrid(dataset, store=True, show=False):
 
 if __name__ == '__main__':
 
-    plot_facetgrid('colqitt_et_al')
+    plot_facetgrid('colquitt_et_al')
     plot_facetgrid('matthews_et_al')

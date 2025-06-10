@@ -84,7 +84,7 @@ def query_gemini(client,
     return None
 
 
-def main(dataset='colqitt_et_al'):
+def main(dataset='colquitt_et_al'):
     load_dotenv()
     client = genai.Client(api_key=os.environ["GEMINIKEY"])
 
@@ -140,5 +140,5 @@ def main(dataset='colqitt_et_al'):
 
 
 if __name__ == '__main__':
-    main('colqitt_et_al')
+    main('colquitt_et_al')
     main('matthews_et_al')

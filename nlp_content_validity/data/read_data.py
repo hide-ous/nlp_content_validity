@@ -1,6 +1,6 @@
 import pandas as pd
 
-DATASET_METRICS = {'colqitt_et_al': ['alpha', 'psa', 'csv', 'htc', 'htd'],
+DATASET_METRICS = {'colquitt_et_al': ['alpha', 'psa', 'csv', 'htc', 'htd'],
                    'matthews_et_al': ['sme_definitional_adequacy_mean', 'sme_definitional_adequacy_std']
                    }
 def read_dataset(dataset):
@@ -25,5 +25,5 @@ def read_validity(dataset):
     return df_rel.set_index('focal_scale')[DATASET_METRICS[dataset]]
 
 if __name__ == '__main__':
-    print(read_dataset('colqitt_et_al'))
+    print(read_dataset('colquitt_et_al'))
     print(read_dataset('matthews_et_al'))
