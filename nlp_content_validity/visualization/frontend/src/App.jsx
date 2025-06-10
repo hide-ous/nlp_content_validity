@@ -1,161 +1,171 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 const API_BASE = "http://localhost:8002/api";
 
-export default function ScaleValidityApp() {
-  const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState("");
+function App() {
+  const [exampleIds, setExampleIds] = useState([]);
+  const [selectedId, setSelectedId] = useState("");
+
   const [targetDef, setTargetDef] = useState("");
   const [adversaries, setAdversaries] = useState(["", ""]);
   const [items, setItems] = useState([""]);
-  const [scores, setScores] = useState(null);
-  const [edited, setEdited] = useState(false);
 
+  const [itemScores, setItemScores] = useState([]);
+  const [aggregatedScore, setAggregatedScore] = useState(null);
+  const [edited, setEdited] = useState(false);
+  const [models, setModels] = useState([]);
+  const [modelName, setModelName] = useState("");
+
+  // Fetch example IDs and available models on load
   useEffect(() => {
+    fetch(`${API_BASE}/examples`)
+      .then(res => res.json())
+      .then(setExampleIds);
+
     fetch(`${API_BASE}/models`)
-      .then((res) => res.json())
-      .then(setModels);
+      .then(res => res.json())
+      .then(data => {
+        setModels(data);
+        if (data.length > 0) setModelName(data[0]);
+      });
   }, []);
 
-  const handlePredict = async () => {
-    const payload = {
-      model_name: selectedModel,
-      target_def: targetDef,
-      adversaries: adversaries.filter(a => a.trim() !== ""),
-      items: items.filter(i => i.trim() !== "")
-    };
+  const loadExample = (id) => {
+    fetch(`${API_BASE}/example/${encodeURIComponent(id)}`)
+      .then(res => res.json())
+      .then(data => {
+        setSelectedId(id);
+        setTargetDef(data.target_def);
+        setAdversaries(data.adversaries);
+        setItems(data.items);
+        setItemScores([]);
+        setAggregatedScore(null);
+        setEdited(false);
+      });
+  };
 
-    const res = await fetch(`${API_BASE}/predict`, {
+  const predict = () => {
+    fetch(`${API_BASE}/predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    setScores(data);
-    setEdited(false);
+      body: JSON.stringify({
+        model_name: modelName,
+        target_def: targetDef,
+        adversaries,
+        items,
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        setItemScores(data.item_scores);
+        setAggregatedScore(data.aggregated_score);
+        setEdited(false);
+      });
   };
 
-  const handleClear = () => {
-    setSelectedModel("");
-    setTargetDef("");
-    setAdversaries(["", ""]);
-    setItems([""]);
-    setScores(null);
-    setEdited(false);
-  };
-
-  const handleItemChange = (idx, val) => {
+  const handleItemChange = (idx, value) => {
     const updated = [...items];
-    updated[idx] = val;
+    updated[idx] = value;
     setItems(updated);
     setEdited(true);
   };
 
-  const handleAdversaryChange = (idx, val) => {
-    const updated = [...adversaries];
-    updated[idx] = val;
-    setAdversaries(updated);
-    setEdited(true);
-  };
-
-  const handleAddItem = () => {
-    setItems([...items, ""]);
-    setEdited(true);
-  };
-
-  const handleDeleteItem = (idx) => {
+  const deleteItem = (idx) => {
     const updated = items.filter((_, i) => i !== idx);
     setItems(updated);
     setEdited(true);
   };
 
-  return (
-    <div className="max-w-2xl mx-auto p-4 space-y-6">
-      <h1 className="text-xl font-bold">Scale Validity via Sentence Similarity</h1>
+  const addItem = () => {
+    setItems([...items, ""]);
+    setEdited(true);
+  };
 
-      <div className="space-y-2">
-        <label className="font-semibold">1. Select Similarity Model</label>
-        <select
-          value={selectedModel}
-          onChange={(e) => {
-            setSelectedModel(e.target.value);
-            setEdited(true);
-          }}
-          className="w-full border rounded p-2"
-        >
-          <option value="">-- Choose a model --</option>
-          {models.map((model) => (
-            <option key={model} value={model}>{model}</option>
+  return (
+    <div style={{ maxWidth: 800, margin: "auto", padding: "2rem" }}>
+      <h2>Scale Validity Predictor</h2>
+
+      {/* Section 1: Model and Example Selection */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label><strong>Select Model:</strong></label><br />
+        <select value={modelName} onChange={e => setModelName(e.target.value)}>
+          {models.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+
+        <br /><br />
+        <label><strong>Load Example:</strong></label><br />
+        <select value={selectedId} onChange={e => loadExample(e.target.value)}>
+          <option value="">-- Choose an example --</option>
+          {exampleIds.map(id => (
+            <option key={id} value={id}>{id}</option>
           ))}
         </select>
       </div>
 
-      <div className="space-y-2">
-        <label className="font-semibold">2. Target Definition</label>
-        <textarea
-          className="w-full border rounded p-2"
-          rows={3}
-          value={targetDef}
-          onChange={(e) => {
-            setTargetDef(e.target.value);
-            setEdited(true);
-          }}
-        />
+      {/* Section 2: Definitions */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label><strong>Focal Definition</strong></label>
+        <textarea value={targetDef} onChange={e => { setTargetDef(e.target.value); setEdited(true); }}
+                  rows={3} style={{ width: "100%" }} />
+
         {adversaries.map((adv, idx) => (
           <div key={idx}>
-            <label className="font-semibold">Adversary {idx + 1} Definition</label>
+            <label><strong>Adversary {idx + 1}</strong></label>
             <textarea
-              className="w-full border rounded p-2"
-              rows={2}
               value={adv}
-              onChange={(e) => handleAdversaryChange(idx, e.target.value)}
+              rows={2}
+              style={{ width: "100%" }}
+              onChange={(e) => {
+                const updated = [...adversaries];
+                updated[idx] = e.target.value;
+                setAdversaries(updated);
+                setEdited(true);
+              }}
             />
           </div>
         ))}
       </div>
 
-      <div className="space-y-2">
-        <label className="font-semibold">3. Scale Items</label>
+      {/* Section 3: Items */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h4>Scale Items</h4>
         {items.map((item, idx) => (
-          <div key={idx} className="flex items-center space-x-2 mb-1">
+          <div key={idx} style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
             <input
+              type="text"
               value={item}
-              onChange={(e) => handleItemChange(idx, e.target.value)}
-              className="flex-grow border rounded p-2"
+              onChange={e => handleItemChange(idx, e.target.value)}
+              style={{ flex: 1 }}
             />
-            <button onClick={() => handleDeleteItem(idx)} className="text-red-500">✕</button>
-            {scores?.item_scores?.[idx] != null && (
-              <span className="text-sm text-gray-600">
-                Score: {scores.item_scores[idx].toFixed(3)}
-              </span>
+            <button onClick={() => deleteItem(idx)} style={{ marginLeft: "0.5rem" }}>Delete</button>
+            {itemScores.length > 0 && (
+              <span style={{ marginLeft: "1rem" }}>Score: {itemScores[idx].toFixed(3)}</span>
             )}
           </div>
         ))}
-        <button onClick={handleAddItem} className="text-blue-600">+ Add Item</button>
+        <button onClick={addItem}>+ Add Item</button>
       </div>
 
-      <div className="space-x-4">
-        <button
-          onClick={handlePredict}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Predict
-        </button>
-        <button
-          onClick={handleClear}
-          className="bg-gray-300 px-4 py-2 rounded"
-        >
-          Clear
-        </button>
-        {edited && <span className="text-yellow-600">Inputs edited since last prediction</span>}
+      {/* Section 4: Prediction Buttons */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <button onClick={predict}>Run Prediction</button>
+        {edited && (
+          <p style={{ color: "orange", marginTop: "0.5rem" }}>
+            Fields have been edited since the last prediction.
+          </p>
+        )}
       </div>
 
-      {scores && (
-        <div className="mt-6">
-          <p className="font-semibold">Model Used: {scores.model_used}</p>
-          <p className="font-semibold">Aggregated Validity Score: {scores.aggregated_score.toFixed(3)}</p>
+      {/* Section 5: Output */}
+      {aggregatedScore !== null && (
+        <div>
+          <h4>Predicted Validity Score: {aggregatedScore.toFixed(3)}</h4>
         </div>
       )}
     </div>
   );
 }
+
+export default App;

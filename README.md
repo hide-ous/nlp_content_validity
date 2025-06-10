@@ -46,6 +46,18 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
 4. Plot results
    - run `plot_correlations.py` from `nlp_content_validity/visualization`
 
+### Web Service
+1. Run the backend
+   ```shell
+   uvicorn nlp_content_validity.visualization.backend.api:app --reload --port 8002
+   ```
+2. Run the frontend
+   ```shell
+   cd nlp_content_validity/visualization/frontend
+   npm install
+   npm run dev
+   ```
+
 ## Project Organization
 
 ```
