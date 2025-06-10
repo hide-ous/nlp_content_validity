@@ -7,10 +7,18 @@ from typing import List
 import torch
 from sentence_transformers.util import cos_sim
 
-from nlp_content_validity.data.read_data import read_dataset
 from nlp_content_validity.features.compute_similarities import iterate_on_scale
 from nlp_content_validity.features.sentence_similarity import T5_model, RoBERTa_model
 from nlp_content_validity.models.aggregate_similarities import htd_aggregate
+
+
+# TODO:
+#  - bug: when an example is re-loaded, it should reload (right now, if the input has been edited, it does not start from scratch)
+#  - precompute htd on the example dataset with each model; return the percentile instead of the predicted htd
+#  - escape scale titles with spaces instead of url encoding
+#  - text boxes should show all text
+#  - resized text boxes should still be formatted beneath the corresponding titles
+#  - docker compose
 
 app = FastAPI()
 
