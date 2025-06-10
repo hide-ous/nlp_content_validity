@@ -4,7 +4,7 @@ import os
 from sentence_transformers import util
 
 from sentence_transformers import CrossEncoder
-# from llama_cpp import Llama
+from llama_cpp import Llama
 
 import logging
 
@@ -140,55 +140,55 @@ def main(dataset, basedir='../../data/interim'):
     results = lsa_similarity(definitions, df, focal_scales, orbiting_dict, model_lsa)
     with open(f'{basedir}/{dataset}/bow_lsa.json', 'w') as f:
         json.dump(results, f)
-    #
-    # logger.info(f'1. WORD MODELS')
-    #
-    # logger.info(f'loading models')
-    # model_ft = fasttext_model()
-    # model_w2v = w2v_model()
-    # model_glove = glove_model()
-    #
-    # for cosine in (True, False):
-    #     for model_name, model in dict(word_ft=model_ft, word_w2v=model_w2v, word_glove=model_glove).items():
-    #         logger.info(f'computing for model {model_name} with {"cosine" if cosine else "wmd"}')
-    #         results = word_model_similarity(definitions, df, focal_scales, orbiting_dict, model, cosine)
-    #         with open(f'{basedir}/{dataset}/{model_name}_{"cosine" if cosine else "wmd"}.json', 'w') as f:
-    #             json.dump(results, f)
-    # logger.info(f'2. SENTENCE MODELS')
-    # for model_name, model in (('sentence_t5', T5_model()), ('sentence_roberta', RoBERTa_model())):
-    #     logger.info(f'computing for model {model_name}')
-    #     results = sentence_model_similarity(definitions, df, focal_scales, orbiting_dict, model)
-    #     with open(f'{basedir}/{dataset}/{model_name}.json', 'w') as f:
-    #         json.dump(results, f)
-    #
-    # logger.info(f'3. TASK MODELS')
-    # model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid(),
-    #                      device='cuda' if torch.cuda.is_available() else 'cpu')
-    # model_name = 'task_sts_cross_encoder'
-    # logger.info(f'computing for model {model_name}')
-    # results = sts_similarity(definitions, df, focal_scales, orbiting_dict, model)
-    # with open(f'{basedir}/{dataset}/{model_name}.json', 'w') as f:
-    #     json.dump(results, f)
-    #
-    # model = pipeline("text-classification", model="tasksource/deberta-base-long-nli", top_k=None)
-    # model_name = 'task_nli_deberta'
-    # logger.info(f'computing for model {model_name}')
-    # for relation in ['entailment', 'neutral', 'contradiction']:
-    #     results = nli_similarity(definitions, df, focal_scales, orbiting_dict, model, relation)
-    #     with open(f'{basedir}/{dataset}/{model_name}_{relation}.json', 'w') as f:
-    #         json.dump(results, f)
-    #
-    # logger.info(f'4. LLM MODELS')
-    # model = Llama(model_path="../../models/mistral-7b-instruct-v0.2.Q4_K_M.gguf", chat_format="llama-2",
-    #               n_gpu_layers=-1,
-    #               n_ctx=32768,
-    #               verbose=False
-    #               )
-    # model_name = 'llm_mistral'
-    # logger.info(f'computing for model {model_name}')
-    # results = llm_similarity(definitions, df, focal_scales, orbiting_dict, model)
-    # with open(f'{basedir}/{dataset}/{model_name}.json', 'w') as f:
-    #     json.dump(results, f)
+
+    logger.info(f'1. WORD MODELS')
+
+    logger.info(f'loading models')
+    model_ft = fasttext_model()
+    model_w2v = w2v_model()
+    model_glove = glove_model()
+
+    for cosine in (True, False):
+        for model_name, model in dict(word_ft=model_ft, word_w2v=model_w2v, word_glove=model_glove).items():
+            logger.info(f'computing for model {model_name} with {"cosine" if cosine else "wmd"}')
+            results = word_model_similarity(definitions, df, focal_scales, orbiting_dict, model, cosine)
+            with open(f'{basedir}/{dataset}/{model_name}_{"cosine" if cosine else "wmd"}.json', 'w') as f:
+                json.dump(results, f)
+    logger.info(f'2. SENTENCE MODELS')
+    for model_name, model in (('sentence_t5', T5_model()), ('sentence_roberta', RoBERTa_model())):
+        logger.info(f'computing for model {model_name}')
+        results = sentence_model_similarity(definitions, df, focal_scales, orbiting_dict, model)
+        with open(f'{basedir}/{dataset}/{model_name}.json', 'w') as f:
+            json.dump(results, f)
+
+    logger.info(f'3. TASK MODELS')
+    model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid(),
+                         device='cuda' if torch.cuda.is_available() else 'cpu')
+    model_name = 'task_sts_cross_encoder'
+    logger.info(f'computing for model {model_name}')
+    results = sts_similarity(definitions, df, focal_scales, orbiting_dict, model)
+    with open(f'{basedir}/{dataset}/{model_name}.json', 'w') as f:
+        json.dump(results, f)
+
+    model = pipeline("text-classification", model="tasksource/deberta-base-long-nli", top_k=None)
+    model_name = 'task_nli_deberta'
+    logger.info(f'computing for model {model_name}')
+    for relation in ['entailment', 'neutral', 'contradiction']:
+        results = nli_similarity(definitions, df, focal_scales, orbiting_dict, model, relation)
+        with open(f'{basedir}/{dataset}/{model_name}_{relation}.json', 'w') as f:
+            json.dump(results, f)
+
+    logger.info(f'4. LLM MODELS')
+    model = Llama(model_path="../../models/mistral-7b-instruct-v0.2.Q4_K_M.gguf", chat_format="llama-2",
+                  n_gpu_layers=-1,
+                  n_ctx=32768,
+                  verbose=False
+                  )
+    model_name = 'llm_mistral'
+    logger.info(f'computing for model {model_name}')
+    results = llm_similarity(definitions, df, focal_scales, orbiting_dict, model)
+    with open(f'{basedir}/{dataset}/{model_name}.json', 'w') as f:
+        json.dump(results, f)
 
 
 if __name__ == '__main__':
