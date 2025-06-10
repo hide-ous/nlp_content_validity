@@ -18,7 +18,7 @@ def plot_facetgrid(dataset, store=True, show=False):
                            'task_nli_deberta_entailment', 'task_nli_deberta_contradiction',
                            'task_nli_deberta_neutral', 'task_sts_cross_encoder',
                            'word_ft_wmd', 'word_w2v_wmd', 'word_glove_wmd', 'word_ft_cosine',
-                           'word_w2v_cosine', 'word_glove_cosine', ], hue_order=['llm', 'task', 'sentence', 'word'])
+                           'word_w2v_cosine', 'word_glove_cosine', 'bow_lsa'], hue_order=['llm', 'task', 'sentence', 'word', 'bow'])
 
     for ax in g.axes.flat:
         ax.tick_params(axis='x', which='both', rotation=90)

@@ -23,14 +23,15 @@ def RoBERTa_model():
 
 
 def LSA_model():
-    corpus = api.load('text8')  # download the corpus and return it opened as an iterable
+    # corpus = api.load('text8')  # download the corpus and return it opened as an iterable
 
     lsa = make_pipeline(TfidfVectorizer(
         max_df=0.5,
         min_df=5,
         stop_words=None,  # keep things like not, etc.
-    ), TruncatedSVD(n_components=100), Normalizer(copy=False))
-    return lsa.fit(map(lambda x: ' '.join(x), corpus))
+    ), TruncatedSVD(n_components=40), Normalizer(copy=False))
+    return lsa
+    # return lsa.fit(map(lambda x: ' '.join(x), corpus))
 
 
 def fasttext_model():
