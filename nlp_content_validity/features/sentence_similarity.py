@@ -11,7 +11,7 @@ from sentence_transformers import SentenceTransformer
 
 
 def load_sentence_transformers(model_name):
-    return SentenceTransformer(f'sentence-transformers/{model_name}')
+    return SentenceTransformer(f'sentence-transformers/{model_name}', cache_folder='../../models/')
 
 
 def T5_model():

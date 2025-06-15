@@ -12,11 +12,13 @@ function App() {
 
   const [itemScores, setItemScores] = useState([]);
   const [aggregatedScore, setAggregatedScore] = useState(null);
+  const [percentile, setPercentile] = useState(null);
   const [edited, setEdited] = useState(false);
   const [models, setModels] = useState([]);
   const [modelName, setModelName] = useState("");
+  const [predictionMade, setPredictionMade] = useState(false);
 
-  // Fetch example IDs and available models on load
+
   useEffect(() => {
     fetch(`${API_BASE}/examples`)
       .then(res => res.json())
@@ -31,15 +33,28 @@ function App() {
   }, []);
 
   const loadExample = (id) => {
+    if (id === "__custom__") {
+      setSelectedId("");
+      setTargetDef("");
+      setAdversaries(["", ""]);
+      setItems([""]);
+      setItemScores([]);
+      setAggregatedScore(null);
+      setPercentile(null);
+      setEdited(false);
+      return;
+    }
+
     fetch(`${API_BASE}/example/${encodeURIComponent(id)}`)
       .then(res => res.json())
       .then(data => {
         setSelectedId(id);
-        setTargetDef(data.target_def);
-        setAdversaries(data.adversaries);
-        setItems(data.items);
+        setTargetDef(""); setTimeout(() => setTargetDef(data.target_def), 0);
+        setAdversaries(["", ""]); setTimeout(() => setAdversaries(data.adversaries), 0);
+        setItems([""]); setTimeout(() => setItems(data.items), 0);
         setItemScores([]);
         setAggregatedScore(null);
+        setPercentile(null);
         setEdited(false);
       });
   };
@@ -59,7 +74,9 @@ function App() {
       .then(data => {
         setItemScores(data.item_scores);
         setAggregatedScore(data.aggregated_score);
+        setPercentile(data.percentile_rank);
         setEdited(false);
+        setPredictionMade(true); // ✅ track that prediction occurred
       });
   };
 
@@ -84,11 +101,18 @@ function App() {
   return (
     <div style={{ maxWidth: 800, margin: "auto", padding: "2rem" }}>
       <h2>Scale Validity Predictor</h2>
-
-      {/* Section 1: Model and Example Selection */}
       <div style={{ marginBottom: "1.5rem" }}>
         <label><strong>Select Model:</strong></label><br />
-        <select value={modelName} onChange={e => setModelName(e.target.value)}>
+        <select
+          value={modelName}
+            onChange={e => {
+              setModelName(e.target.value);
+              if (predictionMade) setEdited(true); // ✅ only show change warning after prediction
+              setItemScores([]);
+              setAggregatedScore(null);
+              setPercentile(null);
+            }}
+        >
           {models.map((m) => (
             <option key={m} value={m}>{m}</option>
           ))}
@@ -97,26 +121,30 @@ function App() {
         <br /><br />
         <label><strong>Load Example:</strong></label><br />
         <select value={selectedId} onChange={e => loadExample(e.target.value)}>
-          <option value="">-- Choose an example --</option>
+          <option value="__custom__">Write your own</option>
           {exampleIds.map(id => (
             <option key={id} value={id}>{id}</option>
           ))}
         </select>
       </div>
 
-      {/* Section 2: Definitions */}
       <div style={{ marginBottom: "1.5rem" }}>
         <label><strong>Focal Definition</strong></label>
-        <textarea value={targetDef} onChange={e => { setTargetDef(e.target.value); setEdited(true); }}
-                  rows={3} style={{ width: "100%" }} />
+        <textarea
+          value={targetDef}
+          onChange={e => { setTargetDef(e.target.value); setEdited(true); }}
+          rows={Math.max(4, targetDef.split('\n').length)}
+          style={{ width: "100%", resize: "vertical" }}
+        />
+
 
         {adversaries.map((adv, idx) => (
           <div key={idx}>
             <label><strong>Adversary {idx + 1}</strong></label>
             <textarea
               value={adv}
-              rows={2}
-              style={{ width: "100%" }}
+              rows={Math.max(4, targetDef.split('\n').length)}
+              style={{ width: "100%", resize: "vertical" }}
               onChange={(e) => {
                 const updated = [...adversaries];
                 updated[idx] = e.target.value;
@@ -128,16 +156,15 @@ function App() {
         ))}
       </div>
 
-      {/* Section 3: Items */}
       <div style={{ marginBottom: "1.5rem" }}>
         <h4>Scale Items</h4>
         {items.map((item, idx) => (
           <div key={idx} style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
-            <input
-              type="text"
+            <textarea
               value={item}
               onChange={e => handleItemChange(idx, e.target.value)}
-              style={{ flex: 1 }}
+              rows={Math.max(2, item.split('\n').length)}
+              style={{ width: '100%', resize: 'vertical' }}
             />
             <button onClick={() => deleteItem(idx)} style={{ marginLeft: "0.5rem" }}>Delete</button>
             {itemScores.length > 0 && (
@@ -148,20 +175,39 @@ function App() {
         <button onClick={addItem}>+ Add Item</button>
       </div>
 
-      {/* Section 4: Prediction Buttons */}
       <div style={{ marginBottom: "1.5rem" }}>
         <button onClick={predict}>Run Prediction</button>
-        {edited && (
+        {edited && predictionMade && (
           <p style={{ color: "orange", marginTop: "0.5rem" }}>
             Fields have been edited since the last prediction.
           </p>
         )}
       </div>
 
-      {/* Section 5: Output */}
       {aggregatedScore !== null && (
         <div>
-          <h4>Predicted Validity Score: {aggregatedScore.toFixed(3)}</h4>
+          <h4>Predicted Validity Score:</h4>
+          {percentile !== null && (
+            <div style={{ marginTop: "1rem" }}>
+              <p>higher than {percentile.toFixed(1)}% of reference scales</p>
+              <div style={{
+                position: 'relative',
+                height: '20px',
+                borderRadius: '4px',
+                background: 'linear-gradient(to right, #ff6b6b, #ffe066, #51cf66)',
+                marginTop: '4px'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  left: `${percentile}%`,
+                  top: '-8px',
+                  width: '2px',
+                  height: '36px',
+                  backgroundColor: 'black'
+                }} />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

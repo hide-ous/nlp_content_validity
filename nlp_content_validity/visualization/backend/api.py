@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI
@@ -5,20 +6,50 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 import torch
+from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim
+import re
+from scipy.stats import percentileofscore
+import urllib.parse
 
-from nlp_content_validity.features.compute_similarities import iterate_on_scale
-from nlp_content_validity.features.sentence_similarity import T5_model, RoBERTa_model
-from nlp_content_validity.models.aggregate_similarities import htd_aggregate
+from tqdm import tqdm
 
 
 # TODO:
 #  - bug: when an example is re-loaded, it should reload (right now, if the input has been edited, it does not start from scratch)
-#  - precompute htd on the example dataset with each model; return the percentile instead of the predicted htd
-#  - escape scale titles with spaces instead of url encoding
-#  - text boxes should show all text
-#  - resized text boxes should still be formatted beneath the corresponding titles
-#  - docker compose
+
+def htd_aggregate(data):
+    return {scale: (2 * np.sum(vals['focal']) - np.sum(vals['orbiting_scale_1']) - np.sum(vals['orbiting_scale_2'])) / (
+            2 * len(vals['focal'])) for scale, vals in data.items()}
+
+def load_sentence_transformers(model_name):
+    return SentenceTransformer(f'sentence-transformers/{model_name}', cache_folder='models/')
+
+
+def T5_model():
+    return load_sentence_transformers('sentence-t5-base')
+
+
+def RoBERTa_model():
+    return load_sentence_transformers('stsb-roberta-base')
+def iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
+    for scale, itms in tqdm(df.groupby('scale'), total=df.scale.nunique()):
+        if scale not in focal_scales: continue
+        scale_focal = scale
+        definition_focal = definitions[scale]
+        scale_orbiting1 = orbiting_dict[scale]['orbiting_scale_1']
+        definition_orbiting1 = definitions.get(scale_orbiting1, None)
+        scale_orbiting2 = orbiting_dict[scale]['orbiting_scale_2']
+        definition_orbiting2 = definitions.get(scale_orbiting2, None)
+
+        items = itms.item.to_list()
+
+        for scale, definition in ((scale_focal, definition_focal),
+                                  (scale_orbiting1, definition_orbiting1),
+                                  (scale_orbiting2, definition_orbiting2)):
+            if not definition: continue
+            yield scale_focal, items, scale, definition
+
 
 app = FastAPI()
 
@@ -37,11 +68,15 @@ MODELS = {
     "stsb-roberta-base": RoBERTa_model(),
 }
 
-import urllib.parse
+dataset = "colquitt_et_al"
+reference_distributions = {
+    "sentence-t5-base": pd.read_csv("data/processed/%s/sentence_t5.csv" % dataset).iloc[:, -1].dropna().tolist(),
+    "stsb-roberta-base": pd.read_csv("data/processed/%s/sentence_roberta.csv" % dataset).iloc[:, -1].dropna().tolist(),
+}
+
 
 
 # Load examples into a dict keyed by escaped ID
-dataset = "colquitt_et_al"
 df_orbiting = pd.read_csv('data/external/%s/relations.csv' % dataset)
 orbiting_dict = df_orbiting[['focal_scale', 'orbiting_scale_1', 'orbiting_scale_2']].set_index(
     'focal_scale').to_dict(
@@ -57,7 +92,6 @@ construct_df = construct_df[['definition']]
 definitions = construct_df.definition.to_dict()
 
 examples_by_id = {}
-# definitions, df, focal_scales, orbiting_dict = read_dataset(dataset)
 
 for scale, items, scale_name, definition in iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
     if scale != scale_name:
@@ -66,7 +100,7 @@ for scale, items, scale_name, definition in iterate_on_scale(definitions, df, fo
     adv1 = definitions.get(orbiting_dict[scale]["orbiting_scale_1"], "")
     adv2 = definitions.get(orbiting_dict[scale]["orbiting_scale_2"], "")
 
-    example_id = urllib.parse.quote_plus(scale)
+    example_id = re.sub('[^a-zA-Z]+', ' ', scale)
     examples_by_id[example_id] = {
         "id": example_id,
         "target_def": definition,
@@ -84,6 +118,7 @@ class PredictResponse(BaseModel):
     model_used: str
     item_scores: List[float]
     aggregated_score: float
+    percentile_rank: float | None = None
 
 class ExampleResponse(BaseModel):
     id: str
@@ -125,20 +160,27 @@ async def predict(req: PredictRequest):
         else:
             agg = sum(sims_target) / len(sims_target) if sims_target else 0.0
 
+    if req.model_name in reference_distributions:
+        percentile = percentileofscore(reference_distributions[req.model_name], agg, kind='rank')
+    else:
+        percentile = None
+
     return PredictResponse(
         model_used=req.model_name,
         item_scores=sims_target,
-        aggregated_score=agg
+        aggregated_score=agg,
+        percentile_rank=percentile
     )
+
 
 @app.get("/api/examples", response_model=List[str])
 async def get_example_ids():
-    # print('getting examples')
-    # print(list(examples_by_id.keys()))
     return list(examples_by_id.keys())
 
 @app.get("/api/example/{example_id}", response_model=ExampleResponse)
 async def get_example(example_id: str):
+    example_id = urllib.parse.unquote(example_id)
+    print(example_id)
     if example_id not in examples_by_id:
         return JSONResponse(status_code=404, content={"error": "Example not found"})
     return examples_by_id[example_id]
