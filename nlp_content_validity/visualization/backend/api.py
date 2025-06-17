@@ -11,6 +11,7 @@ from sentence_transformers.util import cos_sim
 import re
 from scipy.stats import percentileofscore
 import urllib.parse
+from fastapi.staticfiles import StaticFiles
 
 from tqdm import tqdm
 
@@ -32,6 +33,7 @@ def T5_model():
 
 def RoBERTa_model():
     return load_sentence_transformers('stsb-roberta-base')
+
 def iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
     for scale, itms in tqdm(df.groupby('scale'), total=df.scale.nunique()):
         if scale not in focal_scales: continue
@@ -61,6 +63,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/api/ping")
+async def ping():
+    return {"msg": "pong"}
+
 
 # Load models once
 MODELS = {
@@ -184,3 +191,7 @@ async def get_example(example_id: str):
     if example_id not in examples_by_id:
         return JSONResponse(status_code=404, content={"error": "Example not found"})
     return examples_by_id[example_id]
+
+
+# app.mount("/", StaticFiles(directory="/app/frontend-dist", html=True), name="static")
+app.mount("/", StaticFiles(directory="../frontend/dist", html=True), name="static")

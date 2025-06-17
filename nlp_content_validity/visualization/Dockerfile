@@ -11,7 +11,10 @@ WORKDIR /app
 # Backend setup
 COPY ../../data/ /app/data/
 COPY backend/ /app/backend/
-COPY --from=frontend-build /app/dist /app/frontend-dist
+#COPY --from=frontend-build /app/dist /app/frontend-dist
+COPY --from=frontend-build /app/dist /frontend/dist
+#COPY frontend/dist /app/frontend-dist
+
 
 # Install dependencies
 COPY requirements.txt .

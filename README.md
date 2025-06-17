@@ -47,6 +47,14 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
    - run `plot_correlations.py` from `nlp_content_validity/visualization`
 
 ### Web Service
+
+If running within a docker container:
+```shell
+cd nlp_content_validity/visualization
+docker-compose up --build
+```
+
+else, if running locally:
 1. Run the backend
    ```shell
    uvicorn nlp_content_validity.visualization.backend.api:app --reload --port 8002
