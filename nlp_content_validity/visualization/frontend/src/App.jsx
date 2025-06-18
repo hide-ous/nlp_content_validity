@@ -175,15 +175,6 @@ function App() {
         <button onClick={addItem}>+ Add Item</button>
       </div>
 
-      <div style={{ marginBottom: "1.5rem" }}>
-        <button onClick={predict}>Run Prediction</button>
-        {edited && predictionMade && (
-          <p style={{ color: "orange", marginTop: "0.5rem" }}>
-            Fields have been edited since the last prediction.
-          </p>
-        )}
-      </div>
-
       {aggregatedScore !== null && (
         <div>
           <h4>Predicted Validity Score:</h4>
@@ -210,6 +201,17 @@ function App() {
           )}
         </div>
       )}
+
+      <div style={{ marginBottom: "1.5rem" }}>
+        <button onClick={predict}>Run Prediction</button>
+        {edited && predictionMade && (
+          <p style={{ color: "orange", marginTop: "0.5rem" }}>
+            Fields have been edited since the last prediction.
+          </p>
+        )}
+      </div>
+
+
     </div>
   );
 }

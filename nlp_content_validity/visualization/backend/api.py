@@ -193,5 +193,4 @@ async def get_example(example_id: str):
     return examples_by_id[example_id]
 
 
-# app.mount("/", StaticFiles(directory="/app/frontend-dist", html=True), name="static")
 app.mount("/", StaticFiles(directory="../frontend/dist", html=True), name="static")
