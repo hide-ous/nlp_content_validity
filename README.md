@@ -50,8 +50,8 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
 
 If running within a docker container:
 ```shell
-cd nlp_content_validity/visualization
-docker-compose up --build
+cd visualization
+docker compose up --build
 ```
 
 else, if running locally:
