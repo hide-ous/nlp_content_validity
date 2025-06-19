@@ -1,0 +1,9 @@
+services:
+  your_service_name:
+    build:
+      context: .
+      dockerfile: nlp_content_validity/visualization/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONUNBUFFERED=1

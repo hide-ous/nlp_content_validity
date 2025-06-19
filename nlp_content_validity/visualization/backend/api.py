@@ -192,5 +192,8 @@ async def get_example(example_id: str):
         return JSONResponse(status_code=404, content={"error": "Example not found"})
     return examples_by_id[example_id]
 
-
-app.mount("/", StaticFiles(directory="../frontend/dist", html=True), name="static")
+docker = True
+if docker:
+    app.mount("/", StaticFiles(directory="/app/frontend/dist", html=True), name="static")
+else:
+    app.mount("/", StaticFiles(directory="../frontend/dist", html=True), name="static")
