@@ -1,5 +1,5 @@
 services:
-  your_service_name:
+  validity:
     build:
       context: .
       dockerfile: nlp_content_validity/visualization/Dockerfile

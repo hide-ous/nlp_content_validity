@@ -184,3 +184,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+/nlp_content_validity/visualization/package-lock.json
+/nlp_content_validity/visualization/frontend/package-lock.json
