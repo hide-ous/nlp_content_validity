@@ -5,5 +5,6 @@ services:
       dockerfile: nlp_content_validity/visualization/Dockerfile
     ports:
       - "8002:8002"
+    restart: always
     environment:
       - PYTHONUNBUFFERED=1
