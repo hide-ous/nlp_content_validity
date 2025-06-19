@@ -31,7 +31,7 @@ This installation guide assumes you are on Windows on a GPU-endowed machine, wit
    - input: the files `data/external/DATASET/[items,definitions,relations].csv`, where dataset is `colqitt_et_al` or `matthews_et_al`
 2. Compute item-definition similarities
    - output: the file `data/processed/DATASET/*.json`, structured as follows:
-     ```json
+     ```
      [{items_scale_id:{
          definition_scale_id:[item_1_vs_definition_similarity, ..., item_n_vs_definition_similarity]}},
      ...
