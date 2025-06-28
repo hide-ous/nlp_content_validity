@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-
-const API_BASE = "http://localhost:8002/api";
+const API_BASE = import.meta.env.VITE_API_URL;
+// const API_BASE = "http://localhost:8002/api";
 
 function App() {
   const [exampleIds, setExampleIds] = useState([]);
