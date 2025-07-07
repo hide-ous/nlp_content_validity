@@ -136,7 +136,9 @@ def main(dataset, basedir='../../data/interim'):
 
     logger.info(f'0. BAG OF WORD MODELS')
     model_lsa = LSA_model()
-    model_lsa.fit(df.item)
+    all_texts = list(definitions.values()) + df.item.tolist()
+    model_lsa.fit(all_texts)
+    # model_lsa.fit(df.item)
     results = lsa_similarity(definitions, df, focal_scales, orbiting_dict, model_lsa)
     with open(f'{basedir}/{dataset}/bow_lsa.json', 'w') as f:
         json.dump(results, f)
