@@ -82,8 +82,8 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
     if show:
         plt.show()
 
-def plot_facetgrid(dataset, store=True, show=False):
-    df = pd.read_csv(f'../../data/processed/{dataset}_correlations.csv')
+def plot_facetgrid(dataset, store=True, show=False, item=False):
+    df = pd.read_csv(f'../../data/processed/{dataset}{"_item" if item else ""}_correlations.csv')
     df['abs_corr'] = df.r.apply(np.abs)
     # df['abs_corr'] = df.r
     df['family'] = df.model.apply(lambda x: x.split('_')[0])
