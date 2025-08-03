@@ -1,18 +1,23 @@
 import json
 import re
+
+import numpy as np
 from dotenv import load_dotenv
 from google.genai.errors import ServerError, ClientError
 from tqdm import tqdm
 import os
 import time
-from typing import Optional
+from typing import Optional, Union, List
+from sklearn.metrics.pairwise import cosine_similarity
 from google import genai
 
 from google.api_core.exceptions import ResourceExhausted, InternalServerError, ServiceUnavailable
+from google.genai import types
 
 from nlp_content_validity.data.read_data import read_dataset
 
 MODEL = "gemini-2.5-flash-preview-04-17"
+EMBEDDING_MODEL = "gemini-embedding-001"
 _last_request_time = 0
 
 PROMPT_TEMPLATE = """
@@ -41,10 +46,11 @@ Answer with only the numbers corresponding to the ratings of the following items
 
 
 def query_gemini(client,
-                 prompt: str,
+                 prompt: Union[str, List[str]],
                  min_interval: float = 60 / 10,  # 10 requests per minute
                  max_retries: int = 3,
-                 model=MODEL
+                 model=MODEL,
+                 embed=False
                  ) -> Optional[str]:
     """
     Queries Gemini with a prompt, respecting free-tier rate limits.
@@ -71,10 +77,19 @@ def query_gemini(client,
     for attempt in range(max_retries):
         try:
             _last_request_time = time.time()
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt
-            )
+            if not embed:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt
+                )
+            else:
+                result = [
+                    np.array(e.values) for e in client.models.embed_content(
+                        model=model,
+                        contents=prompt,
+                        config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")).embeddings
+                ]
+                response = np.array(result)
             return response
         except (ResourceExhausted, InternalServerError, ServiceUnavailable, ServerError, ClientError) as e:
             wait = 5 ** (attempt + 1)
@@ -83,6 +98,38 @@ def query_gemini(client,
     print("Request failed after max retries.")
     return None
 
+def main_mbeddings(dataset='colquitt_et_al'
+                 ):
+    load_dotenv()
+    client = genai.Client(api_key=os.environ["GEMINIKEY"])
+
+    definitions, df, focal_scales, orbiting_dict = read_dataset(dataset)
+
+
+    responses = dict()
+    similarities = dict()
+    for scale, itms in tqdm(df.groupby('scale'), total=df.scale.nunique()):
+        print(scale)
+        if scale not in focal_scales: continue
+
+        items = itms.item.to_list()
+        result = query_gemini(client, items, model=EMBEDDING_MODEL, embed=True)
+        responses[scale] = result
+        embeddings_matrix = np.array(result)
+        similarity_matrix = cosine_similarity(embeddings_matrix).tolist()
+        similarities[scale] = similarity_matrix
+
+    out_dir = f'../../data/interim/{dataset}/item_similarities'
+    os.makedirs(out_dir, exist_ok=True)
+
+    with open(f'{out_dir}/llm_gemini.json', 'w+') as outfile:
+        json.dump(list({k:v} for k, v in similarities.items()), outfile)
+
+    out_dir_embeddings = f'../../data/interim/{dataset}/embeddings'
+    os.makedirs(out_dir_embeddings, exist_ok=True)
+
+    with open(f'{out_dir_embeddings}/llm_gemini.json', 'w+') as outfile:
+        json.dump(list({k:v.tolist()} for k, v in responses.items()), outfile)
 
 def main(dataset='colquitt_et_al'):
     load_dotenv()
@@ -140,5 +187,6 @@ def main(dataset='colquitt_et_al'):
 
 
 if __name__ == '__main__':
-    main('colquitt_et_al')
-    main('matthews_et_al')
+    # main('colquitt_et_al')
+    # main('matthews_et_al')
+    main_mbeddings('colquitt_et_al')
