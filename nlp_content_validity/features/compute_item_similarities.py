@@ -95,18 +95,18 @@ def llm_similarity(definitions, df, focal_scales, orbiting_dict, model):
                 for item2_idx in range(item1_idx+1, len(items)):
                     item1 = items[item1_idx]
                     item2 = items[item2_idx]
-                    f'<s>[INST] You rated, on a scale 1 to 10, how likely is it that one person would answer similarly to the following two questions. [Q1]"{item1}"[/Q1] [Q2]"{item2}"[/Q2] The number that corresponds to that likelihood is [/INST]'
-                    prompt = PROMPT_TEMPLATE.format(item1=item1, item2=item2)
+
+                    prompt = f'<s>[INST] You rated, on a scale 1 to 10, how likely is it that one person would answer similarly to the following two questions. [Q1]"{item1}"[/Q1] [Q2]"{item2}"[/Q2] The number that corresponds to that likelihood is [/INST]'
                     output = model(
                         prompt,
                         temperature=.1,
                         max_tokens=2,
                     )
                     x = output['choices'][0]['text']
-                    int(x) if x.strip().isnumeric() else 5.5
+                    x = int(x) if x.strip().isnumeric() else 5.5
                     responses[item1_idx, item2_idx] = x
                     responses[item2_idx, item1_idx] = x
-                    responses[item1_idx, item1_idx] = 10.
+                responses[item1_idx, item1_idx] = 10.
             results.append(
                 {scale_focal: responses.tolist()})
 
@@ -146,7 +146,7 @@ def lsa_similarity(definitions, df, focal_scales, orbiting_dict, model):
 def main(dataset, basedir='../../data/interim'):
     os.makedirs(f'{basedir}/{dataset}/item_similarities/', exist_ok=True)
     definitions, df, focal_scales, orbiting_dict = read_dataset(dataset)
-
+    #
     # logger.info(f'0. BAG OF WORD MODELS')
     # model_lsa = LSA_model()
     # # all_texts = list(definitions.values()) + df.item.tolist()
@@ -158,17 +158,17 @@ def main(dataset, basedir='../../data/interim'):
     #
     # logger.info(f'1. WORD MODELS')
     #
-    logger.info(f'loading models')
-    model_ft = fasttext_model()
-    model_w2v = w2v_model()
-    model_glove = glove_model()
-
-    for cosine in (True, False):
-        for model_name, model in dict(word_ft=model_ft, word_w2v=model_w2v, word_glove=model_glove).items():
-            logger.info(f'computing for model {model_name} with {"cosine" if cosine else "wmd"}')
-            results = word_model_similarity(definitions, df, focal_scales, orbiting_dict, model, cosine)
-            with open(f'{basedir}/{dataset}/item_similarities/{model_name}_{"cosine" if cosine else "wmd"}.json', 'w') as f:
-                json.dump(results, f)
+    # logger.info(f'loading models')
+    # model_ft = fasttext_model()
+    # model_w2v = w2v_model()
+    # model_glove = glove_model()
+    #
+    # for cosine in (True, False):
+    #     for model_name, model in dict(word_ft=model_ft, word_w2v=model_w2v, word_glove=model_glove).items():
+    #         logger.info(f'computing for model {model_name} with {"cosine" if cosine else "wmd"}')
+    #         results = word_model_similarity(definitions, df, focal_scales, orbiting_dict, model, cosine)
+    #         with open(f'{basedir}/{dataset}/item_similarities/{model_name}_{"cosine" if cosine else "wmd"}.json', 'w') as f:
+    #             json.dump(results, f)
     # logger.info(f'2. SENTENCE MODELS')
     # for model_name, model in (('sentence_t5', T5_model()), ('sentence_roberta', RoBERTa_model())):
     #     logger.info(f'computing for model {model_name}')
@@ -184,7 +184,7 @@ def main(dataset, basedir='../../data/interim'):
     # results = sts_similarity(definitions, df, focal_scales, orbiting_dict, model)
     # with open(f'{basedir}/{dataset}/item_similarities/{model_name}.json', 'w') as f:
     #     json.dump(results, f)
-
+    #
     # model = pipeline("text-classification", model="tasksource/deberta-base-long-nli", top_k=None)
     # model_name = 'task_nli_deberta'
     # logger.info(f'computing for model {model_name}')
@@ -193,17 +193,17 @@ def main(dataset, basedir='../../data/interim'):
     #     with open(f'{basedir}/{dataset}/item_similarities/{model_name}_{relation}.json', 'w') as f:
     #         json.dump(results, f)
 
-    # logger.info(f'4. LLM MODELS')
-    # model = Llama(model_path="../../models/mistral-7b-instruct-v0.2.Q4_K_M.gguf", chat_format="llama-2",
-    #               n_gpu_layers=-1,
-    #               n_ctx=32768,
-    #               verbose=False
-    #               )
-    # model_name = 'llm_mistral'
-    # logger.info(f'computing for model {model_name}')
-    # results = llm_similarity(definitions, df, focal_scales, orbiting_dict, model)
-    # with open(f'{basedir}/{dataset}/item_similarities/{model_name}.json', 'w') as f:
-    #     json.dump(results, f)
+    logger.info(f'4. LLM MODELS')
+    model = Llama(model_path="../../models/mistral-7b-instruct-v0.2.Q4_K_M.gguf", chat_format="llama-2",
+                  n_gpu_layers=-1,
+                  n_ctx=32768,
+                  verbose=False
+                  )
+    model_name = 'llm_mistral'
+    logger.info(f'computing for model {model_name}')
+    results = llm_similarity(definitions, df, focal_scales, orbiting_dict, model)
+    with open(f'{basedir}/{dataset}/item_similarities/{model_name}.json', 'w') as f:
+        json.dump(results, f)
 
 
 if __name__ == '__main__':
