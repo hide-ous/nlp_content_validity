@@ -38,11 +38,16 @@ def word_model_similarity(definitions, df, focal_scales, orbiting_dict, model, c
             results.append({scale_focal:
                                               util.cos_sim(item_mean_word_embeddings,item_mean_word_embeddings).tolist()})
         else:
-            distances = list()
-            for item_tokens in items_tokenized:
-                distances.append(model.wmdistance(list(filter(lambda x: x in model.key_to_index, item_tokens)),
-                                                  list(filter(lambda x: x in model.key_to_index, item_tokens))))
-            results.append({scale_focal: distances})
+            responses = np.zeros(shape=(len(items), len(items)))
+            for item1_idx in range(len(items)):
+                for item2_idx in range(item1_idx+1, len(items)):
+                    item1 = items_tokenized[item1_idx]
+                    item2 = items_tokenized[item2_idx]
+                    responses[item1_idx, item2_idx] = model.wmdistance(list(filter(lambda x: x in model.key_to_index, item1)),
+                                                  list(filter(lambda x: x in model.key_to_index, item2)))
+                    responses[item2_idx, item1_idx] = responses[item1_idx, item2_idx]
+                responses[item1_idx, item1_idx] = 0.
+            results.append({scale_focal: responses.tolist()})
     return results
 
 
@@ -153,17 +158,17 @@ def main(dataset, basedir='../../data/interim'):
     #
     # logger.info(f'1. WORD MODELS')
     #
-    # logger.info(f'loading models')
-    # model_ft = fasttext_model()
-    # model_w2v = w2v_model()
-    # model_glove = glove_model()
-    #
-    # for cosine in (True, False):
-    #     for model_name, model in dict(word_ft=model_ft, word_w2v=model_w2v, word_glove=model_glove).items():
-    #         logger.info(f'computing for model {model_name} with {"cosine" if cosine else "wmd"}')
-    #         results = word_model_similarity(definitions, df, focal_scales, orbiting_dict, model, cosine)
-    #         with open(f'{basedir}/{dataset}/item_similarities/{model_name}_{"cosine" if cosine else "wmd"}.json', 'w') as f:
-    #             json.dump(results, f)
+    logger.info(f'loading models')
+    model_ft = fasttext_model()
+    model_w2v = w2v_model()
+    model_glove = glove_model()
+
+    for cosine in (True, False):
+        for model_name, model in dict(word_ft=model_ft, word_w2v=model_w2v, word_glove=model_glove).items():
+            logger.info(f'computing for model {model_name} with {"cosine" if cosine else "wmd"}')
+            results = word_model_similarity(definitions, df, focal_scales, orbiting_dict, model, cosine)
+            with open(f'{basedir}/{dataset}/item_similarities/{model_name}_{"cosine" if cosine else "wmd"}.json', 'w') as f:
+                json.dump(results, f)
     # logger.info(f'2. SENTENCE MODELS')
     # for model_name, model in (('sentence_t5', T5_model()), ('sentence_roberta', RoBERTa_model())):
     #     logger.info(f'computing for model {model_name}')
@@ -172,13 +177,13 @@ def main(dataset, basedir='../../data/interim'):
     #         json.dump(results, f)
     #
     # logger.info(f'3. TASK MODELS')
-    model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid(),
-                         device='cuda' if torch.cuda.is_available() else 'cpu')
-    model_name = 'task_sts_cross_encoder'
-    logger.info(f'computing for model {model_name}')
-    results = sts_similarity(definitions, df, focal_scales, orbiting_dict, model)
-    with open(f'{basedir}/{dataset}/item_similarities/{model_name}.json', 'w') as f:
-        json.dump(results, f)
+    # model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid(),
+    #                      device='cuda' if torch.cuda.is_available() else 'cpu')
+    # model_name = 'task_sts_cross_encoder'
+    # logger.info(f'computing for model {model_name}')
+    # results = sts_similarity(definitions, df, focal_scales, orbiting_dict, model)
+    # with open(f'{basedir}/{dataset}/item_similarities/{model_name}.json', 'w') as f:
+    #     json.dump(results, f)
 
     # model = pipeline("text-classification", model="tasksource/deberta-base-long-nli", top_k=None)
     # model_name = 'task_nli_deberta'

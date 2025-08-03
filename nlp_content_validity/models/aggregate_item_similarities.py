@@ -7,7 +7,7 @@ import json
 
 def main(dataset='colquitt_et_al'):
     basedir = f'../../data/interim/{dataset}'
-    in_dir = f'{basedir}/item_similarities/'
+    in_dir = f'{basedir}/item_similarities'
     out_dir = f'../../data/processed/{dataset}/item_similarities/'
     os.makedirs(out_dir, exist_ok=True)
     for filename in os.listdir(in_dir):
