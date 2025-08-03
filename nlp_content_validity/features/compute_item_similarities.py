@@ -5,7 +5,7 @@ import numpy as np
 from sentence_transformers import util
 
 from sentence_transformers import CrossEncoder
-from llama_cpp import Llama
+from llama_cpp import Llama, LLAMA_POOLING_TYPE_MEAN
 
 import logging
 
@@ -113,6 +113,20 @@ def llm_similarity(definitions, df, focal_scales, orbiting_dict, model):
     return results
 
 
+
+def llm_embedding_similarity(definitions, df, focal_scales, orbiting_dict, model):
+    results = list()
+    with torch.no_grad():
+        for scale_focal, items, scale, definition in iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
+            if scale != scale_focal: continue
+            embeddings_raw = model.create_embedding(items)
+            embeddings = [x['embedding'] for x in embeddings_raw['data']]
+            # print(len(embeddings[0]), len(embeddings[0][0]), len(items), len(embeddings))
+            results.append({scale_focal:util.cos_sim(embeddings,embeddings).tolist()})
+    return results
+
+
+
 def iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
     for scale, itms in tqdm(df.groupby('scale'), total=df.scale.nunique()):
         if scale not in focal_scales: continue
@@ -194,14 +208,27 @@ def main(dataset, basedir='../../data/interim'):
     #         json.dump(results, f)
 
     logger.info(f'4. LLM MODELS')
+    # model = Llama(model_path="../../models/mistral-7b-instruct-v0.2.Q4_K_M.gguf", chat_format="llama-2",
+    #               n_gpu_layers=-1,
+    #               n_ctx=32768,
+    #               verbose=False
+    #               )
+    # model_name = 'llm_mistral'
+    # logger.info(f'computing for model {model_name}')
+    # results = llm_similarity(definitions, df, focal_scales, orbiting_dict, model)
+    # with open(f'{basedir}/{dataset}/item_similarities/{model_name}.json', 'w') as f:
+    #     json.dump(results, f)
+
     model = Llama(model_path="../../models/mistral-7b-instruct-v0.2.Q4_K_M.gguf", chat_format="llama-2",
                   n_gpu_layers=-1,
                   n_ctx=32768,
-                  verbose=False
-                  )
+                  verbose=False,
+                  embedding=True,
+                  pooling_type=LLAMA_POOLING_TYPE_MEAN, )
+    # model_name = 'sentence_mistral'
     model_name = 'llm_mistral'
     logger.info(f'computing for model {model_name}')
-    results = llm_similarity(definitions, df, focal_scales, orbiting_dict, model)
+    results = llm_embedding_similarity(definitions, df, focal_scales, orbiting_dict, model)
     with open(f'{basedir}/{dataset}/item_similarities/{model_name}.json', 'w') as f:
         json.dump(results, f)
 
