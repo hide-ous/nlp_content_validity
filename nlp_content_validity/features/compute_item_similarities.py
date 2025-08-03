@@ -64,7 +64,7 @@ def sts_similarity(definitions, df, focal_scales, orbiting_dict, model):
         inputs = [(item1, item2) for item1 in items for item2 in items]
         outputs = model.predict(inputs)
         results.append({scale_focal:
-                                          outputs.tolist()})
+                                          outputs.reshape((len(items), len(items))).tolist()})
     return results
 
 
@@ -84,18 +84,26 @@ def llm_similarity(definitions, df, focal_scales, orbiting_dict, model):
     with torch.no_grad():
         for scale_focal, items, scale, definition in iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
             if scale != scale_focal: continue
-            responses = list()
-            for item in items:
-                prompt = PROMPT_TEMPLATE.format(n_items=len(items), definition=definition, construct=scale,
-                                                items=item)
-                output = model(
-                    prompt,
-                    temperature=.1,
-                    max_tokens=2,
-                )
-                responses.append(output['choices'][0]['text'])
+
+            responses = np.zeros(shape=(len(items), len(items)))
+            for item1_idx in range(len(items)):
+                for item2_idx in range(item1_idx+1, len(items)):
+                    item1 = items[item1_idx]
+                    item2 = items[item2_idx]
+                    f'<s>[INST] You rated, on a scale 1 to 10, how likely is it that one person would answer similarly to the following two questions. [Q1]"{item1}"[/Q1] [Q2]"{item2}"[/Q2] The number that corresponds to that likelihood is [/INST]'
+                    prompt = PROMPT_TEMPLATE.format(item1=item1, item2=item2)
+                    output = model(
+                        prompt,
+                        temperature=.1,
+                        max_tokens=2,
+                    )
+                    x = output['choices'][0]['text']
+                    int(x) if x.strip().isnumeric() else 5.5
+                    responses[item1_idx, item2_idx] = x
+                    responses[item2_idx, item1_idx] = x
+                    responses[item1_idx, item1_idx] = 10.
             results.append(
-                {scale_focal: {scale: list(map(lambda x: int(x) if x.strip().isnumeric() else 4, responses))}})
+                {scale_focal: responses.tolist()})
 
     return results
 
@@ -164,21 +172,21 @@ def main(dataset, basedir='../../data/interim'):
     #         json.dump(results, f)
     #
     # logger.info(f'3. TASK MODELS')
-    # model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid(),
-    #                      device='cuda' if torch.cuda.is_available() else 'cpu')
-    # model_name = 'task_sts_cross_encoder'
-    # logger.info(f'computing for model {model_name}')
-    # results = sts_similarity(definitions, df, focal_scales, orbiting_dict, model)
-    # with open(f'{basedir}/{dataset}/item_similarities/{model_name}.json', 'w') as f:
-    #     json.dump(results, f)
-
-    model = pipeline("text-classification", model="tasksource/deberta-base-long-nli", top_k=None)
-    model_name = 'task_nli_deberta'
+    model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid(),
+                         device='cuda' if torch.cuda.is_available() else 'cpu')
+    model_name = 'task_sts_cross_encoder'
     logger.info(f'computing for model {model_name}')
-    for relation in ['entailment', 'neutral', 'contradiction']:
-        results = nli_similarity(definitions, df, focal_scales, orbiting_dict, model, relation)
-        with open(f'{basedir}/{dataset}/item_similarities/{model_name}_{relation}.json', 'w') as f:
-            json.dump(results, f)
+    results = sts_similarity(definitions, df, focal_scales, orbiting_dict, model)
+    with open(f'{basedir}/{dataset}/item_similarities/{model_name}.json', 'w') as f:
+        json.dump(results, f)
+
+    # model = pipeline("text-classification", model="tasksource/deberta-base-long-nli", top_k=None)
+    # model_name = 'task_nli_deberta'
+    # logger.info(f'computing for model {model_name}')
+    # for relation in ['entailment', 'neutral', 'contradiction']:
+    #     results = nli_similarity(definitions, df, focal_scales, orbiting_dict, model, relation)
+    #     with open(f'{basedir}/{dataset}/item_similarities/{model_name}_{relation}.json', 'w') as f:
+    #         json.dump(results, f)
 
     # logger.info(f'4. LLM MODELS')
     # model = Llama(model_path="../../models/mistral-7b-instruct-v0.2.Q4_K_M.gguf", chat_format="llama-2",

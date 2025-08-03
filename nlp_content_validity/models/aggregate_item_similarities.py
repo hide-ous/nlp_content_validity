@@ -19,9 +19,9 @@ def main(dataset='colquitt_et_al'):
         for i in data:
             for k, v in i.items():
                 v= np.array(v)
-                print(v)
-                print(np.triu_indices_from(v, 1))
-                print(v[np.triu_indices_from(v, 1)])
+                # print(v)
+                # print(np.triu_indices_from(v, 1))
+                # print(v[np.triu_indices_from(v, 1)])
                 v=v[np.triu_indices_from(v, 1)]
 
                 # v = np.triu(v, 1)
