@@ -49,6 +49,7 @@ def main(dataset='colquitt_et_al'):
         relations[(focal, focal)] = 'focal'
     for filename in os.listdir(basedir):
         model_name = os.path.splitext(filename)[0]
+        if os.path.isdir(f'{basedir}/{filename}'): continue
         print(f'processing {basedir}/{filename}')
         with open(f'{basedir}/{filename}', 'rb') as f:
             data = json.load(f)

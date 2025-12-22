@@ -19,20 +19,25 @@ def main(dataset='colquitt_et_al'):
         for i in data:
             for k, v in i.items():
                 v= np.array(v)
-                # print(v)
                 # print(np.triu_indices_from(v, 1))
                 # print(v[np.triu_indices_from(v, 1)])
-                v=v[np.triu_indices_from(v, 1)]
 
                 # v = np.triu(v, 1)
-                data_dict[k] = dict(mean=v.mean(),
-                                    median=np.median(v),
-                                    std=np.std(v),
-                                    min=np.min(v),
-                                    max=np.max(v)
-                                    )
+                if dataset=='colquitt_et_al':
+                    v = v[np.triu_indices_from(v, 1)]
+                    data_dict[k] = dict(mean=v.mean(),
+                                        median=np.median(v),
+                                        std=np.std(v),
+                                        min=np.min(v),
+                                        max=np.max(v)
+                                        )
+                elif dataset=='matthews_et_al':
+                    data_dict[k] = dict(actual=v[0,0]
+                                        )
+
         pd.DataFrame(data_dict).T.to_csv(f'{out_dir}/{model_name}.csv')
 
 
 if __name__ == '__main__':
     main('colquitt_et_al')
+    main('matthews_et_al')

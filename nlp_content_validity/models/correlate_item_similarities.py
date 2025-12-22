@@ -24,4 +24,4 @@ def main(dataset='colquitt_et_al'):
 
 if __name__ == '__main__':
     main('colquitt_et_al')
-    # main('matthews_et_al')
+    main('matthews_et_al')

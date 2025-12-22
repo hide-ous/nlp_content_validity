@@ -11,6 +11,7 @@ def main(dataset='colquitt_et_al'):
     df_rel = read_validity(dataset)
     results = list()
     for fname in os.listdir(base_dir):
+        if os.path.isdir(f'{base_dir}/{fname}'): continue
         model = os.path.splitext(fname)[0]
         df_sim = pd.read_csv(f'{base_dir}/{fname}', index_col=0)
         for c1 in df_rel.columns:
