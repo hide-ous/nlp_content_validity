@@ -13,7 +13,8 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
     df.validity_metric = df.validity_metric.apply(lambda x: x if not x.startswith('sme') else x[4:])
 
     target_sim = 'mean_focal'
-    target_val = 'htc'
+    target_val = {'colquitt_et_al': 'htc',
+                  'matthews_et_al': 'sme_definitional_adequacy_mean'}[dataset]
 
     dfs = list()
     for model in os.listdir(f'../../data/processed/{dataset}/'):
@@ -111,5 +112,6 @@ def plot_facetgrid(dataset, store=True, show=False, item=False):
 if __name__ == '__main__':
 
     plot_facetgrid('colquitt_et_al')
+    plot_facetgrid('colquitt_et_al', item=True)
     plot_facetgrid('matthews_et_al')
     plot_scatter('colquitt_et_al')
