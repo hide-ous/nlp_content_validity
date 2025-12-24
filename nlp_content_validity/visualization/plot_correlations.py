@@ -36,7 +36,7 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
     g = sns.FacetGrid(df, col='model', col_wrap=4, sharex=False, sharey=False, hue='family',
                       col_order=['gemini',
                                 'contval_raterd',
-                                'mistral',
+                                # 'mistral',
                                 't5',
                                 'roberta',
                                 'contval_raterc',
