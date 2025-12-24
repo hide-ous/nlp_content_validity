@@ -18,6 +18,7 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
 
     dfs = list()
     for model in os.listdir(f'../../data/processed/{dataset}/'):
+        if os.path.isdir(f'../../data/processed/{dataset}/{model}'):continue
         df = pd.read_csv(f'../../data/processed/{dataset}/{model}', index_col=0).rename(columns={'htd':'htd_nlp'})
         df['model'] = os.path.splitext(model)[0]
         df['family'] = df.model.apply(lambda x: x.split('_')[0])
@@ -34,9 +35,11 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
 
     g = sns.FacetGrid(df, col='model', col_wrap=4, sharex=False, sharey=False, hue='family',
                       col_order=['gemini',
+                                'contval_raterd',
                                 'mistral',
                                 't5',
                                 'roberta',
+                                'contval_raterc',
                                 'nli_deberta_entailment',
                                 'nli_deberta_contradiction',
                                 'nli_deberta_neutral',
@@ -94,7 +97,8 @@ def plot_facetgrid(dataset, store=True, show=False, item=False):
     df.model.unique()
     g = sns.FacetGrid(df, col='validity_metric', row='nlp_metric').set_titles('{col_name} | {row_name}')
     g.map_dataframe(sns.barplot, x='model', y='abs_corr', hue='family', palette='husl',
-                    order=['llm_gemini', 'llm_mistral', 'sentence_t5', 'sentence_roberta',
+                    order=['llm_gemini', 'llm_contval_raterd', 'sentence_t5', 'sentence_roberta',
+                           'task_contval_raterc',
                            'task_nli_deberta_entailment', 'task_nli_deberta_contradiction',
                            'task_nli_deberta_neutral', 'task_sts_cross_encoder',
                            'word_ft_wmd', 'word_w2v_wmd', 'word_glove_wmd', 'word_ft_cosine',
