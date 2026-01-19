@@ -14,7 +14,7 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
 
     target_sim = 'mean_focal'
     target_val = {'colquitt_et_al': 'htc',
-                  'matthews_et_al': 'sme_definitional_adequacy_mean'}[dataset]
+                  'matthews_et_al': 'def_correspondence'}[dataset]
 
     dfs = list()
     for model in os.listdir(f'../../data/processed/{dataset}/'):

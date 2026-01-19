@@ -1,7 +1,7 @@
 import pandas as pd
 
 DATASET_METRICS = {'colquitt_et_al': ['alpha', 'psa', 'csv', 'htc', 'htd'],
-                   'matthews_et_al': ['sme_definitional_adequacy_mean', 'sme_definitional_adequacy_std']
+                   'matthews_et_al': ['sme_definitional_adequacy_mean', 'sme_definitional_adequacy_std', 'def_correspondence']
                    }
 def read_dataset(dataset):
     df_orbiting = pd.read_csv('../../data/external/%s/relations.csv' % dataset)
