@@ -2,6 +2,32 @@ import React, { useEffect, useState } from "react";
 const API_BASE = import.meta.env.VITE_API_URL;
 // const API_BASE = "http://localhost:8002/api";
 
+// #  - bug: when an item is added after a prediction, the interface crashes content.js:1 content script loaded
+// # index-C34YdxC5.js:52 Uncaught TypeError: Cannot read properties of undefined (reading 'toFixed')
+// #     at index-C34YdxC5.js:52:215
+// #     at Array.map (<anonymous>)
+// #     at Gh (index-C34YdxC5.js:51:222)
+// #     at xf (index-C34YdxC5.js:48:34113)
+// #     at lc (index-C34YdxC5.js:48:61996)
+// #     at R0 (index-C34YdxC5.js:48:72494)
+// #     at ud (index-C34YdxC5.js:48:106451)
+// #     at xy (index-C34YdxC5.js:48:105533)
+// #     at _c (index-C34YdxC5.js:48:105369)
+// #     at F0 (index-C34YdxC5.js:48:102497)
+// # (anonymous) @ index-C34YdxC5.js:52
+// # Gh @ index-C34YdxC5.js:51
+// # xf @ index-C34YdxC5.js:48
+// # lc @ index-C34YdxC5.js:48
+// # R0 @ index-C34YdxC5.js:48
+// # ud @ index-C34YdxC5.js:48
+// # xy @ index-C34YdxC5.js:48
+// # _c @ index-C34YdxC5.js:48
+// # F0 @ index-C34YdxC5.js:48
+// # rd @ index-C34YdxC5.js:48
+// # ee @ index-C34YdxC5.js:48
+// # hd @ index-C34YdxC5.js:48
+// # (anonymous) @ index-C34YdxC5.js:48
+
 function App() {
   const [exampleIds, setExampleIds] = useState([]);
   const [selectedId, setSelectedId] = useState("");
