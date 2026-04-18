@@ -1,32 +1,6 @@
+// const API_BASE = "http://localhost:8002/api";
 import React, { useEffect, useState } from "react";
 const API_BASE = import.meta.env.VITE_API_URL;
-// const API_BASE = "http://localhost:8002/api";
-
-// #  - bug: when an item is added after a prediction, the interface crashes content.js:1 content script loaded
-// # index-C34YdxC5.js:52 Uncaught TypeError: Cannot read properties of undefined (reading 'toFixed')
-// #     at index-C34YdxC5.js:52:215
-// #     at Array.map (<anonymous>)
-// #     at Gh (index-C34YdxC5.js:51:222)
-// #     at xf (index-C34YdxC5.js:48:34113)
-// #     at lc (index-C34YdxC5.js:48:61996)
-// #     at R0 (index-C34YdxC5.js:48:72494)
-// #     at ud (index-C34YdxC5.js:48:106451)
-// #     at xy (index-C34YdxC5.js:48:105533)
-// #     at _c (index-C34YdxC5.js:48:105369)
-// #     at F0 (index-C34YdxC5.js:48:102497)
-// # (anonymous) @ index-C34YdxC5.js:52
-// # Gh @ index-C34YdxC5.js:51
-// # xf @ index-C34YdxC5.js:48
-// # lc @ index-C34YdxC5.js:48
-// # R0 @ index-C34YdxC5.js:48
-// # ud @ index-C34YdxC5.js:48
-// # xy @ index-C34YdxC5.js:48
-// # _c @ index-C34YdxC5.js:48
-// # F0 @ index-C34YdxC5.js:48
-// # rd @ index-C34YdxC5.js:48
-// # ee @ index-C34YdxC5.js:48
-// # hd @ index-C34YdxC5.js:48
-// # (anonymous) @ index-C34YdxC5.js:48
 
 function App() {
   const [exampleIds, setExampleIds] = useState([]);
@@ -68,6 +42,7 @@ function App() {
       setAggregatedScore(null);
       setPercentile(null);
       setEdited(false);
+      setPredictionMade(false);
       return;
     }
 
@@ -75,13 +50,14 @@ function App() {
       .then(res => res.json())
       .then(data => {
         setSelectedId(id);
-        setTargetDef(""); setTimeout(() => setTargetDef(data.target_def), 0);
-        setAdversaries(["", ""]); setTimeout(() => setAdversaries(data.adversaries), 0);
-        setItems([""]); setTimeout(() => setItems(data.items), 0);
+        setTargetDef(data.target_def);
+        setAdversaries(data.adversaries);
+        setItems(data.items);
         setItemScores([]);
         setAggregatedScore(null);
         setPercentile(null);
         setEdited(false);
+        setPredictionMade(false);
       });
   };
 
@@ -102,7 +78,7 @@ function App() {
         setAggregatedScore(data.aggregated_score);
         setPercentile(data.percentile_rank);
         setEdited(false);
-        setPredictionMade(true); // ✅ track that prediction occurred
+        setPredictionMade(true);
       });
   };
 
@@ -116,11 +92,19 @@ function App() {
   const deleteItem = (idx) => {
     const updated = items.filter((_, i) => i !== idx);
     setItems(updated);
+    // Clear predictions when structure changes
+    setItemScores([]);
+    setAggregatedScore(null);
+    setPercentile(null);
     setEdited(true);
   };
 
   const addItem = () => {
     setItems([...items, ""]);
+    // Clear predictions when structure changes
+    setItemScores([]);
+    setAggregatedScore(null);
+    setPercentile(null);
     setEdited(true);
   };
 
@@ -133,7 +117,7 @@ function App() {
           value={modelName}
             onChange={e => {
               setModelName(e.target.value);
-              if (predictionMade) setEdited(true); // ✅ only show change warning after prediction
+              if (predictionMade) setEdited(true);
               setItemScores([]);
               setAggregatedScore(null);
               setPercentile(null);
@@ -169,7 +153,7 @@ function App() {
             <label><strong>Adversary {idx + 1}</strong></label>
             <textarea
               value={adv}
-              rows={Math.max(4, targetDef.split('\n').length)}
+              rows={Math.max(4, adv.split('\n').length)}
               style={{ width: "100%", resize: "vertical" }}
               onChange={(e) => {
                 const updated = [...adversaries];
@@ -193,7 +177,7 @@ function App() {
               style={{ width: '100%', resize: 'vertical' }}
             />
             <button onClick={() => deleteItem(idx)} style={{ marginLeft: "0.5rem" }}>Delete</button>
-            {itemScores.length > 0 && (
+            {itemScores.length > 0 && itemScores[idx] !== undefined && (
               <span style={{ marginLeft: "1rem" }}>Score: {itemScores[idx].toFixed(3)}</span>
             )}
           </div>

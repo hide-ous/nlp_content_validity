@@ -8,6 +8,8 @@ from typing import List
 import torch
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim
+
+import gensim.downloader as api
 import re
 from scipy.stats import percentileofscore
 import urllib.parse
@@ -15,9 +17,6 @@ from fastapi.staticfiles import StaticFiles
 
 from tqdm import tqdm
 
-
-# TODO:
-#  - bug: when an example is re-loaded, it should reload (right now, if the input has been edited, it does not start from scratch)
 
 def htd_aggregate(data):
     return {scale: (2 * np.sum(vals['focal']) - np.sum(vals['orbiting_scale_1']) - np.sum(vals['orbiting_scale_2'])) / (
@@ -30,9 +29,19 @@ def load_sentence_transformers(model_name):
 def T5_model():
     return load_sentence_transformers('sentence-t5-base')
 
+def preprocess(text):
+    return ''.join(c.lower() if c.isalpha() else ' ' for c in text)
 
-def RoBERTa_model():
-    return load_sentence_transformers('stsb-roberta-base')
+
+def tokenize(text):
+    return text.split()
+
+
+def fasttext_model():
+    model = api.load("fasttext-wiki-news-subwords-300")
+    model.fill_norms()
+    return model
+
 
 def iterate_on_scale(definitions, df, focal_scales, orbiting_dict):
     for scale, itms in tqdm(df.groupby('scale'), total=df.scale.nunique()):
@@ -64,6 +73,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/api/ping")
 async def ping():
     return {"msg": "pong"}
@@ -72,16 +82,16 @@ async def ping():
 # Load models once
 MODELS = {
     "sentence-t5-base": T5_model(),
-    "stsb-roberta-base": RoBERTa_model(),
+
+    "fasttext-wmd": fasttext_model(),
 }
 
 dataset = "colquitt_et_al"
 reference_distributions = {
     "sentence-t5-base": pd.read_csv("data/processed/%s/sentence_t5.csv" % dataset).iloc[:, -1].dropna().tolist(),
-    "stsb-roberta-base": pd.read_csv("data/processed/%s/sentence_roberta.csv" % dataset).iloc[:, -1].dropna().tolist(),
+
+    "fasttext-wmd": pd.read_csv("data/processed/%s/word_ft_wmd.csv" % dataset).iloc[:, -1].dropna().tolist(),
 }
-
-
 
 # Load examples into a dict keyed by escaped ID
 df_orbiting = pd.read_csv('data/external/%s/relations.csv' % dataset)
@@ -115,11 +125,13 @@ for scale, items, scale_name, definition in iterate_on_scale(definitions, df, fo
         "items": items
     }
 
+
 class PredictRequest(BaseModel):
     model_name: str
     target_def: str
     adversaries: List[str]
     items: List[str]
+
 
 class PredictResponse(BaseModel):
     model_used: str
@@ -127,19 +139,23 @@ class PredictResponse(BaseModel):
     aggregated_score: float
     percentile_rank: float | None = None
 
+
 class ExampleResponse(BaseModel):
     id: str
     target_def: str
     adversaries: List[str]
     items: List[str]
 
+
 @app.get("/api/models", response_model=List[str])
 async def list_models():
     return list(MODELS.keys())
 
+
 @app.post("/api/predict", response_model=PredictResponse)
 async def predict(req: PredictRequest):
     if req.model_name not in MODELS:
+        print("model not found", req.model_name)
         return PredictResponse(
             model_used=req.model_name,
             item_scores=[],
@@ -147,25 +163,77 @@ async def predict(req: PredictRequest):
         )
 
     model = MODELS[req.model_name]
+    if req.model_name=="fasttext-wmd":
+        print("using model ", req.model_name, " with wmd")
 
-    with torch.no_grad():
-        item_embs = model.encode(req.items)
-        def_emb = model.encode(req.target_def)
-        sims_target = cos_sim(item_embs, [def_emb]).view(-1).tolist()
+        # Compute WMD distances
+        target_def_tokens = list(filter(lambda x: x in model.key_to_index,
+                                        tokenize(preprocess(req.target_def))))
+
+        sims_target = []
+        for item in req.items:
+            item_tokens = list(filter(lambda x: x in model.key_to_index,
+                                      tokenize(preprocess(item))))
+            # WMD returns distance, convert to similarity (negative distance)
+            distance = model.wmdistance(item_tokens, target_def_tokens)
+            sims_target.append(-distance)  # Negative so higher is more similar
 
         if req.adversaries and len(req.adversaries) == 2:
-            adv_embs = model.encode(req.adversaries)
-            sims_adv = cos_sim(item_embs, adv_embs).T.tolist()
+            adv1_tokens = list(filter(lambda x: x in model.key_to_index,
+                                      tokenize(preprocess(req.adversaries[0]))))
+            adv2_tokens = list(filter(lambda x: x in model.key_to_index,
+                                      tokenize(preprocess(req.adversaries[1]))))
+
+            sims_adv1 = []
+            sims_adv2 = []
+            for item in req.items:
+                item_tokens = list(filter(lambda x: x in model.key_to_index,
+                                          tokenize(preprocess(item))))
+                dist1 = model.wmdistance(item_tokens, adv1_tokens)
+                dist2 = model.wmdistance(item_tokens, adv2_tokens)
+                sims_adv1.append(-dist1)
+                sims_adv2.append(-dist2)
+
             scale_data = {
                 "example": {
                     "focal": sims_target,
-                    "orbiting_scale_1": sims_adv[0],
-                    "orbiting_scale_2": sims_adv[1]
+                    "orbiting_scale_1": sims_adv1,
+                    "orbiting_scale_2": sims_adv2
                 }
             }
             agg = htd_aggregate(scale_data)["example"]
+            print("using model with htd aggregate")
         else:
+            print(' using average')
             agg = sum(sims_target) / len(sims_target) if sims_target else 0.0
+    elif req.model_name=="sentence-t5-base":
+        with torch.no_grad():
+            item_embs = model.encode(req.items)
+            def_emb = model.encode(req.target_def)
+            sims_target = cos_sim(item_embs, [def_emb]).view(-1).tolist()
+
+            if req.adversaries and len(req.adversaries) == 2:
+                adv_embs = model.encode(req.adversaries)
+                sims_adv = cos_sim(item_embs, adv_embs).T.tolist()
+                scale_data = {
+                    "example": {
+                        "focal": sims_target,
+                        "orbiting_scale_1": sims_adv[0],
+                        "orbiting_scale_2": sims_adv[1]
+                    }
+                }
+                agg = htd_aggregate(scale_data)["example"]
+                print("using model ", req.model_name, " with htd")
+            else:
+                print('model ', req.model_name, ' using average')
+                agg = sum(sims_target) / len(sims_target) if sims_target else 0.0
+    else:
+        return PredictResponse(
+            model_used=req.model_name,
+            item_scores=[],
+            aggregated_score=0.0
+        )
+
 
     if req.model_name in reference_distributions:
         percentile = percentileofscore(reference_distributions[req.model_name], agg, kind='rank')
@@ -184,6 +252,7 @@ async def predict(req: PredictRequest):
 async def get_example_ids():
     return list(examples_by_id.keys())
 
+
 @app.get("/api/example/{example_id}", response_model=ExampleResponse)
 async def get_example(example_id: str):
     example_id = urllib.parse.unquote(example_id)
@@ -191,6 +260,7 @@ async def get_example(example_id: str):
     if example_id not in examples_by_id:
         return JSONResponse(status_code=404, content={"error": "Example not found"})
     return examples_by_id[example_id]
+
 
 docker = True
 if docker:

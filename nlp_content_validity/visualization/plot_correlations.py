@@ -12,16 +12,22 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
     df.nlp_metric = df.nlp_metric.apply(lambda x: x if x != 'htd' else 'htd_nlp')
     df.validity_metric = df.validity_metric.apply(lambda x: x if not x.startswith('sme') else x[4:])
 
-    target_sim = 'mean_focal'
+    target_sim = {'colquitt_et_al': 'mean_focal',
+                  'matthews_et_al': 'mean_focal'}[dataset]
     target_val = {'colquitt_et_al': 'htc',
                   'matthews_et_al': 'def_correspondence'}[dataset]
-
+    include_models = {'colquitt_et_al': ['contval_raterd', 't5', 'contval_raterc', 'ft_wmd', 'lsa'],
+                  'matthews_et_al': ['contval_raterd', 't5', 'contval_raterc', 'ft_wmd', 'lsa']}[dataset]
     dfs = list()
     for model in os.listdir(f'../../data/processed/{dataset}/'):
         if os.path.isdir(f'../../data/processed/{dataset}/{model}'):continue
         df = pd.read_csv(f'../../data/processed/{dataset}/{model}', index_col=0).rename(columns={'htd':'htd_nlp'})
         df['model'] = os.path.splitext(model)[0]
-        df['family'] = df.model.apply(lambda x: x.split('_')[0])
+        df['family'] = df.model.apply(lambda x: {"llm":"llm",
+                                                 "task":"task",
+                                                 "sentence":"contextual",
+                                                 "word":"static",
+                                                 "bow":"statistics"}[x.split('_')[0]])
         df['model'] = df.model.apply(lambda x: '_'.join(x.split('_')[1:]))
 
         if (df.model.isin(["nli_deberta_contradiction", "nli_deberta_neutral", "ft_wmd", "glove_wmd", "w2v_wmd"]).any()):
@@ -31,26 +37,28 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
     val = pd.read_csv(f'../../data/external/{dataset}/relations.csv', index_col=0)
     df = pd.merge(df, val, how='left', left_index=True, right_index=True)
     df.head()
+    df = df[df.model.isin(include_models)]
 
 
-    g = sns.FacetGrid(df, col='model', col_wrap=4, sharex=False, sharey=False, hue='family',
-                      col_order=['gemini',
-                                'contval_raterd',
-                                # 'mistral',
-                                't5',
-                                'roberta',
-                                'contval_raterc',
-                                'nli_deberta_entailment',
-                                'nli_deberta_contradiction',
-                                'nli_deberta_neutral',
-                                'sts_cross_encoder',
-                                'ft_wmd',
-                                'w2v_wmd',
-                                'glove_wmd',
-                                'ft_cosine',
-                                'w2v_cosine',
-                                'glove_cosine',
-                                'lsa']
+    g = sns.FacetGrid(df, col='model', col_wrap=3, sharex=False, sharey=False, hue='family',
+                      # col_order=['gemini',
+                      #           'contval_raterd',
+                      #           # 'mistral',
+                      #           't5',
+                      #           'roberta',
+                      #           'contval_raterc',
+                      #           'nli_deberta_entailment',
+                      #           'nli_deberta_contradiction',
+                      #           'nli_deberta_neutral',
+                      #           'sts_cross_encoder',
+                      #           'ft_wmd',
+                      #           'w2v_wmd',
+                      #           'glove_wmd',
+                      #           'ft_cosine',
+                      #           'w2v_cosine',
+                      #           'glove_cosine',
+                      #           'lsa']
+                      col_order=include_models
                       ).set_titles('{col_name}')
     g.map_dataframe(sns.regplot, y=target_val, x=target_sim, order=1,
                     )
@@ -77,9 +85,13 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
 
 
     fig.legend(handles=all_handles, labels=all_labels, title="model family",
-               loc='lower left', bbox_to_anchor=(.8, 0.1), # Places legend outside to the right-top
+               loc='center right', bbox_to_anchor=(.92, 0.30), # Places legend outside to the right-top
                frameon=False, #fontsize='large', title_fontsize='x-large'
                )
+    # sns.move_legend(
+    #     legend_ax, "lower center",
+    #     bbox_to_anchor=(.5, 1), ncol=3, title=None, frameon=False,
+    # )
     plt.tight_layout()
     if store:
         g.figure.savefig(f'../../reports/figures/{dataset}_scatter.png', bbox_inches='tight', dpi=300)

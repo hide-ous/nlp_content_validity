@@ -8,3 +8,6 @@ scikit-learn
 pandas
 numpy
 tqdm
+gensim
+pot
+hf-xet
