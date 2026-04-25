@@ -3,6 +3,7 @@ import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 const STEP_COUNT = 6;
+const MODEL_PRIORITY = ["fasttext-wmd", "sentence-t5-base"];
 
 function App() {
   const [step, setStep] = useState(0);
@@ -32,8 +33,16 @@ function App() {
     fetch(`${API_BASE}/models`)
       .then((res) => res.json())
       .then((data) => {
-        setModels(data);
-        if (data.length > 0) setModelName(data[0]);
+        const ordered = [...data].sort((a, b) => {
+          const ai = MODEL_PRIORITY.indexOf(a);
+          const bi = MODEL_PRIORITY.indexOf(b);
+          const aw = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
+          const bw = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
+          if (aw !== bw) return aw - bw;
+          return a.localeCompare(b);
+        });
+        setModels(ordered);
+        if (ordered.length > 0) setModelName(ordered[0]);
       });
   }, []);
 
@@ -355,7 +364,7 @@ function App() {
             Previous
           </button>
         )}
-        {step < STEP_COUNT - 1 && step !== 1 && step !== 4 && (
+        {step < STEP_COUNT - 1 && step !== 4 && (
           <button type="button" onClick={() => setStep((s) => Math.min(STEP_COUNT - 1, s + 1))}>
             Next
           </button>
