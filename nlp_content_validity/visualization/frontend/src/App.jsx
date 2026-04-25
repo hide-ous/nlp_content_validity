@@ -156,6 +156,15 @@ function App() {
     setStep(1);
   };
 
+  const handleNext = () => {
+    if (step === 1) {
+      const idToLoad = selectedId && selectedId !== "" ? selectedId : "__custom__";
+      loadExample(idToLoad, { advanceToDefinitions: true });
+      return;
+    }
+    setStep((s) => Math.min(STEP_COUNT - 1, s + 1));
+  };
+
   return (
     <main className="app">
       <header className="app-header">
@@ -365,7 +374,7 @@ function App() {
           </button>
         )}
         {step < STEP_COUNT - 1 && step !== 4 && (
-          <button type="button" onClick={() => setStep((s) => Math.min(STEP_COUNT - 1, s + 1))}>
+          <button type="button" onClick={handleNext}>
             Next
           </button>
         )}
