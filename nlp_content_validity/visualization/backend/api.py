@@ -1,3 +1,19 @@
+import os
+from pathlib import Path
+
+MODEL_CACHE_DIR = Path(os.getenv("MODEL_CACHE_DIR", "models")).resolve()
+GENSIM_CACHE_DIR = Path(os.getenv("GENSIM_DATA_DIR", MODEL_CACHE_DIR / "gensim")).resolve()
+SENTENCE_TRANSFORMERS_CACHE_DIR = Path(
+    os.getenv("SENTENCE_TRANSFORMERS_HOME", MODEL_CACHE_DIR / "sentence_transformers")
+).resolve()
+
+MODEL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+GENSIM_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+SENTENCE_TRANSFORMERS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+os.environ["GENSIM_DATA_DIR"] = str(GENSIM_CACHE_DIR)
+os.environ["SENTENCE_TRANSFORMERS_HOME"] = str(SENTENCE_TRANSFORMERS_CACHE_DIR)
+
 import numpy as np
 import pandas as pd
 from fastapi.responses import JSONResponse
@@ -23,7 +39,10 @@ def htd_aggregate(data):
             2 * len(vals['focal'])) for scale, vals in data.items()}
 
 def load_sentence_transformers(model_name):
-    return SentenceTransformer(f'sentence-transformers/{model_name}', cache_folder='models/')
+    return SentenceTransformer(
+        f"sentence-transformers/{model_name}",
+        cache_folder=str(SENTENCE_TRANSFORMERS_CACHE_DIR),
+    )
 
 
 def T5_model():
