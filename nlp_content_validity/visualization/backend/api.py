@@ -136,8 +136,12 @@ class PredictRequest(BaseModel):
 class PredictResponse(BaseModel):
     model_used: str
     item_scores: List[float]
+    item_orbiting_1_scores: List[float]
+    item_orbiting_2_scores: List[float]
     aggregated_score: float
     percentile_rank: float | None = None
+    reference_mean: float | None = None
+    reference_median: float | None = None
 
 
 class ExampleResponse(BaseModel):
@@ -159,6 +163,8 @@ async def predict(req: PredictRequest):
         return PredictResponse(
             model_used=req.model_name,
             item_scores=[],
+            item_orbiting_1_scores=[],
+            item_orbiting_2_scores=[],
             aggregated_score=0.0
         )
 
@@ -178,14 +184,14 @@ async def predict(req: PredictRequest):
             distance = model.wmdistance(item_tokens, target_def_tokens)
             sims_target.append(-distance)  # Negative so higher is more similar
 
+        sims_adv1 = []
+        sims_adv2 = []
         if req.adversaries and len(req.adversaries) == 2:
             adv1_tokens = list(filter(lambda x: x in model.key_to_index,
                                       tokenize(preprocess(req.adversaries[0]))))
             adv2_tokens = list(filter(lambda x: x in model.key_to_index,
                                       tokenize(preprocess(req.adversaries[1]))))
 
-            sims_adv1 = []
-            sims_adv2 = []
             for item in req.items:
                 item_tokens = list(filter(lambda x: x in model.key_to_index,
                                           tokenize(preprocess(item))))
@@ -207,6 +213,8 @@ async def predict(req: PredictRequest):
             print(' using average')
             agg = sum(sims_target) / len(sims_target) if sims_target else 0.0
     elif req.model_name=="sentence-t5-base":
+        sims_adv1 = []
+        sims_adv2 = []
         with torch.no_grad():
             item_embs = model.encode(req.items)
             def_emb = model.encode(req.target_def)
@@ -224,6 +232,8 @@ async def predict(req: PredictRequest):
                 }
                 agg = htd_aggregate(scale_data)["example"]
                 print("using model ", req.model_name, " with htd")
+                sims_adv1 = sims_adv[0]
+                sims_adv2 = sims_adv[1]
             else:
                 print('model ', req.model_name, ' using average')
                 agg = sum(sims_target) / len(sims_target) if sims_target else 0.0
@@ -231,20 +241,31 @@ async def predict(req: PredictRequest):
         return PredictResponse(
             model_used=req.model_name,
             item_scores=[],
+            item_orbiting_1_scores=[],
+            item_orbiting_2_scores=[],
             aggregated_score=0.0
         )
 
 
     if req.model_name in reference_distributions:
-        percentile = percentileofscore(reference_distributions[req.model_name], agg, kind='rank')
+        reference_scores = reference_distributions[req.model_name]
+        percentile = percentileofscore(reference_scores, agg, kind='rank')
+        reference_mean = float(np.mean(reference_scores))
+        reference_median = float(np.median(reference_scores))
     else:
         percentile = None
+        reference_mean = None
+        reference_median = None
 
     return PredictResponse(
         model_used=req.model_name,
         item_scores=sims_target,
+        item_orbiting_1_scores=sims_adv1,
+        item_orbiting_2_scores=sims_adv2,
         aggregated_score=agg,
-        percentile_rank=percentile
+        percentile_rank=percentile,
+        reference_mean=reference_mean,
+        reference_median=reference_median
     )
 
 
