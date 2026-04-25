@@ -23,6 +23,8 @@ function App() {
   const [percentile, setPercentile] = useState(null);
   const [referenceMean, setReferenceMean] = useState(null);
   const [referenceMedian, setReferenceMedian] = useState(null);
+  const [interpretationText, setInterpretationText] = useState("");
+  const [direction, setDirection] = useState("higher_better");
   const [edited, setEdited] = useState(false);
   const [predictionMade, setPredictionMade] = useState(false);
   const [isPredicting, setIsPredicting] = useState(false);
@@ -45,6 +47,8 @@ function App() {
     setPercentile(null);
     setReferenceMean(null);
     setReferenceMedian(null);
+    setInterpretationText("");
+    setDirection("higher_better");
     setPredictionMade(false);
   };
 
@@ -96,6 +100,8 @@ function App() {
         setPercentile(data.percentile_rank ?? null);
         setReferenceMean(data.reference_mean ?? null);
         setReferenceMedian(data.reference_median ?? null);
+        setInterpretationText(data.interpretation_text ?? "");
+        setDirection(data.direction ?? "higher_better");
         setEdited(false);
         setPredictionMade(true);
         setStep(STEP_COUNT - 1);
@@ -132,6 +138,19 @@ function App() {
     [items, itemScores, itemOrbiting1Scores, itemOrbiting2Scores]
   );
 
+  const directionSymbol = direction === "lower_better" ? "↓" : "↑";
+  const directionLabel = direction === "lower_better" ? "Lower is better" : "Higher is better";
+
+  const startFromScratch = () => {
+    setSelectedId("__custom__");
+    setTargetDef("");
+    setAdversaries(["", ""]);
+    setItems([""]);
+    setEdited(false);
+    resetPrediction();
+    setStep(1);
+  };
+
   return (
     <main className="app">
       <header className="app-header">
@@ -142,7 +161,8 @@ function App() {
       </header>
 
       <section className="card">
-        {step === 0 && (
+        <div key={step} className="step-panel">
+          {step === 0 && (
           <>
             <h2>How this tool works</h2>
             <p>
@@ -155,9 +175,9 @@ function App() {
               distribution and shows each item&apos;s similarity to focal, orbiting 1, and orbiting 2.
             </p>
           </>
-        )}
+          )}
 
-        {step === 1 && (
+          {step === 1 && (
           <>
             <h2>Select scale</h2>
             <label htmlFor="scale-select">Available scales</label>
@@ -170,9 +190,9 @@ function App() {
               ))}
             </select>
           </>
-        )}
+          )}
 
-        {step === 2 && (
+          {step === 2 && (
           <>
             <h2>Edit definitions</h2>
             <label htmlFor="focal-definition">Focal definition</label>
@@ -199,9 +219,9 @@ function App() {
               onChange={(e) => setAdversary(1, e.target.value)}
             />
           </>
-        )}
+          )}
 
-        {step === 3 && (
+          {step === 3 && (
           <>
             <h2>Edit items</h2>
             <div className="items-list">
@@ -217,7 +237,8 @@ function App() {
                     }}
                   />
                   <button type="button" className="danger" onClick={() => deleteItem(idx)}>
-                    Remove
+                    <span aria-hidden="true">✕</span>
+                    <span className="sr-only">Remove item</span>
                   </button>
                 </div>
               ))}
@@ -226,9 +247,9 @@ function App() {
               + Add item
             </button>
           </>
-        )}
+          )}
 
-        {step === 4 && (
+          {step === 4 && (
           <>
             <h2>Select model</h2>
             <label htmlFor="model-select">Available models</label>
@@ -246,22 +267,31 @@ function App() {
                 </option>
               ))}
             </select>
-            <button type="button" onClick={predict} disabled={isPredicting || !modelName}>
-              {isPredicting ? "Predicting..." : "Run prediction"}
-            </button>
           </>
-        )}
+          )}
 
-        {step === 5 && (
+          {step === 5 && (
           <>
             <h2>Prediction results</h2>
             {aggregatedScore !== null ? (
               <>
                 <p>
+                  Model used: <strong>{modelName}</strong>
+                </p>
+                <p className="direction-chip" title={directionLabel}>
+                  <span aria-hidden="true">{directionSymbol}</span> {directionLabel}
+                </p>
+                <p>
                   Predicted scale score: <strong>{aggregatedScore.toFixed(3)}</strong>
                 </p>
                 {percentile !== null && (
-                  <p>Compared with the dataset, this score is higher than {percentile.toFixed(1)}% of scales.</p>
+                  <>
+                    <p>Compared with the dataset, this score is higher than {percentile.toFixed(1)}% of scales.</p>
+                    <div className="meter">
+                      <div className="meter-gradient" />
+                      <div className="meter-marker" style={{ left: `${percentile}%` }} />
+                    </div>
+                  </>
                 )}
                 <div className="stats-grid">
                   <div className="stat-box">
@@ -273,6 +303,7 @@ function App() {
                     <strong>{referenceMedian !== null ? referenceMedian.toFixed(3) : "N/A"}</strong>
                   </div>
                 </div>
+                {interpretationText && <p className="interpretation-text">{interpretationText}</p>}
 
                 <h3>Item similarities</h3>
                 <div className="table-wrapper">
@@ -280,9 +311,9 @@ function App() {
                     <thead>
                       <tr>
                         <th>Item</th>
-                        <th>Focal</th>
-                        <th>Orbiting 1</th>
-                        <th>Orbiting 2</th>
+                        <th title={targetDef}>Focal</th>
+                        <th title={adversaries[0] || "No definition provided"}>Orbiting 1</th>
+                        <th title={adversaries[1] || "No definition provided"}>Orbiting 2</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -300,25 +331,34 @@ function App() {
                 {edited && predictionMade && (
                   <p className="warning">Inputs changed since the last prediction. Run prediction again for fresh results.</p>
                 )}
+                <button type="button" className="ghost" onClick={startFromScratch}>
+                  Start from scratch
+                </button>
               </>
             ) : (
               <p>No prediction yet. Go back to model step and run a prediction.</p>
             )}
           </>
-        )}
+          )}
+        </div>
       </section>
 
       <footer className="nav-actions">
-        <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
-          Previous
-        </button>
-        <button
-          type="button"
-          onClick={() => setStep((s) => Math.min(STEP_COUNT - 1, s + 1))}
-          disabled={step >= STEP_COUNT - 1}
-        >
-          Next
-        </button>
+        {step !== 0 && (
+          <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))}>
+            Previous
+          </button>
+        )}
+        {step < STEP_COUNT - 1 && step !== 4 && (
+          <button type="button" onClick={() => setStep((s) => Math.min(STEP_COUNT - 1, s + 1))}>
+            Next
+          </button>
+        )}
+        {step === 4 && (
+          <button type="button" onClick={predict} disabled={isPredicting || !modelName}>
+            {isPredicting ? "Predicting..." : "Run prediction"}
+          </button>
+        )}
       </footer>
     </main>
   );

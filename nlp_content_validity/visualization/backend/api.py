@@ -142,6 +142,8 @@ class PredictResponse(BaseModel):
     percentile_rank: float | None = None
     reference_mean: float | None = None
     reference_median: float | None = None
+    interpretation_text: str
+    direction: str
 
 
 class ExampleResponse(BaseModel):
@@ -165,7 +167,9 @@ async def predict(req: PredictRequest):
             item_scores=[],
             item_orbiting_1_scores=[],
             item_orbiting_2_scores=[],
-            aggregated_score=0.0
+            aggregated_score=0.0,
+            interpretation_text="Unknown model. No interpretation available.",
+            direction="higher_better"
         )
 
     model = MODELS[req.model_name]
@@ -243,7 +247,9 @@ async def predict(req: PredictRequest):
             item_scores=[],
             item_orbiting_1_scores=[],
             item_orbiting_2_scores=[],
-            aggregated_score=0.0
+            aggregated_score=0.0,
+            interpretation_text="Unknown model. No interpretation available.",
+            direction="higher_better"
         )
 
 
@@ -257,6 +263,23 @@ async def predict(req: PredictRequest):
         reference_mean = None
         reference_median = None
 
+    if req.model_name == "fasttext-wmd":
+        interpretation_text = (
+            "This model computes Word Mover's Distance and then negates it for scoring. "
+            "Values can be negative; scores closer to 0 are better than very negative scores. "
+            "For this interface, interpret higher values as better."
+        )
+        direction = "higher_better"
+    elif req.model_name == "sentence-t5-base":
+        interpretation_text = (
+            "This model uses cosine similarity between item and definition embeddings. "
+            "Cosine scores are bounded between -1 and 1, where higher values indicate stronger similarity."
+        )
+        direction = "higher_better"
+    else:
+        interpretation_text = "Model-specific interpretation is not available."
+        direction = "higher_better"
+
     return PredictResponse(
         model_used=req.model_name,
         item_scores=sims_target,
@@ -265,7 +288,9 @@ async def predict(req: PredictRequest):
         aggregated_score=agg,
         percentile_rank=percentile,
         reference_mean=reference_mean,
-        reference_median=reference_median
+        reference_median=reference_median,
+        interpretation_text=interpretation_text,
+        direction=direction
     )
 
 
