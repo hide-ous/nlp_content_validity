@@ -145,6 +145,11 @@ function App() {
 
   const directionSymbol = direction === "lower_better" ? "↓" : "↑";
   const directionLabel = direction === "lower_better" ? "Lower is better" : "Higher is better";
+  const hasAllDefinitions =
+    targetDef.trim().length > 0 &&
+    adversaries[0].trim().length > 0 &&
+    adversaries[1].trim().length > 0;
+  const hasAtLeastOneItem = items.some((item) => item.trim().length > 0);
 
   const startFromScratch = () => {
     setSelectedId("__custom__");
@@ -162,6 +167,8 @@ function App() {
       loadExample(idToLoad, { advanceToDefinitions: true });
       return;
     }
+    if (step === 2 && !hasAllDefinitions) return;
+    if (step === 3 && !hasAtLeastOneItem) return;
     setStep((s) => Math.min(STEP_COUNT - 1, s + 1));
   };
 
@@ -250,6 +257,9 @@ function App() {
               value={adversaries[1]}
               onChange={(e) => setAdversary(1, e.target.value)}
             />
+            {!hasAllDefinitions && (
+              <p className="warning">Please fill focal and both orbiting definitions before continuing.</p>
+            )}
           </>
           )}
 
@@ -260,6 +270,7 @@ function App() {
               {items.map((item, idx) => (
                 <div key={idx} className="item-row">
                   <textarea
+                    rows={2}
                     value={item}
                     onChange={(e) => {
                       const updated = [...items];
@@ -278,6 +289,9 @@ function App() {
             <button type="button" onClick={addItem}>
               + Add item
             </button>
+            {!hasAtLeastOneItem && (
+              <p className="warning">Please provide at least one non-empty item before continuing.</p>
+            )}
           </>
           )}
 
@@ -374,12 +388,20 @@ function App() {
           </button>
         )}
         {step < STEP_COUNT - 1 && step !== 4 && (
-          <button type="button" onClick={handleNext}>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={(step === 2 && !hasAllDefinitions) || (step === 3 && !hasAtLeastOneItem)}
+          >
             Next
           </button>
         )}
         {step === 4 && (
-          <button type="button" onClick={predict} disabled={isPredicting || !modelName}>
+          <button
+            type="button"
+            onClick={predict}
+            disabled={isPredicting || !modelName || !hasAllDefinitions || !hasAtLeastOneItem}
+          >
             {isPredicting ? "Predicting..." : "Run prediction"}
           </button>
         )}
