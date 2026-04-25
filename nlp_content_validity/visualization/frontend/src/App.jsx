@@ -21,8 +21,6 @@ function App() {
   const [itemOrbiting2Scores, setItemOrbiting2Scores] = useState([]);
   const [aggregatedScore, setAggregatedScore] = useState(null);
   const [percentile, setPercentile] = useState(null);
-  const [referenceMean, setReferenceMean] = useState(null);
-  const [referenceMedian, setReferenceMedian] = useState(null);
   const [interpretationText, setInterpretationText] = useState("");
   const [direction, setDirection] = useState("higher_better");
   const [edited, setEdited] = useState(false);
@@ -45,8 +43,6 @@ function App() {
     setItemOrbiting2Scores([]);
     setAggregatedScore(null);
     setPercentile(null);
-    setReferenceMean(null);
-    setReferenceMedian(null);
     setInterpretationText("");
     setDirection("higher_better");
     setPredictionMade(false);
@@ -57,7 +53,7 @@ function App() {
     resetPrediction();
   };
 
-  const loadExample = (id) => {
+  const loadExample = (id, { advanceToDefinitions = false } = {}) => {
     setSelectedId(id);
     if (id === "__custom__") {
       setTargetDef("");
@@ -65,6 +61,7 @@ function App() {
       setItems([""]);
       setEdited(false);
       resetPrediction();
+      if (advanceToDefinitions) setStep(2);
       return;
     }
 
@@ -76,6 +73,7 @@ function App() {
         setItems(data.items);
         setEdited(false);
         resetPrediction();
+        if (advanceToDefinitions) setStep(2);
       });
   };
 
@@ -98,8 +96,6 @@ function App() {
         setItemOrbiting2Scores(data.item_orbiting_2_scores ?? []);
         setAggregatedScore(data.aggregated_score ?? null);
         setPercentile(data.percentile_rank ?? null);
-        setReferenceMean(data.reference_mean ?? null);
-        setReferenceMedian(data.reference_median ?? null);
         setInterpretationText(data.interpretation_text ?? "");
         setDirection(data.direction ?? "higher_better");
         setEdited(false);
@@ -180,9 +176,27 @@ function App() {
           {step === 1 && (
           <>
             <h2>Select scale</h2>
-            <label htmlFor="scale-select">Available scales</label>
-            <select id="scale-select" value={selectedId} onChange={(e) => loadExample(e.target.value)}>
-              <option value="__custom__">Write your own</option>
+            <div className="choice-layout">
+              <button
+                type="button"
+                className="ghost cta-choice"
+                onClick={() => loadExample("__custom__", { advanceToDefinitions: true })}
+              >
+                Write your own scale
+              </button>
+              <div className="choice-divider" aria-hidden="true">
+                <span>or</span>
+              </div>
+            </div>
+            <label htmlFor="scale-select">Choose a known scale</label>
+            <select
+              id="scale-select"
+              value={selectedId === "__custom__" ? "" : selectedId}
+              onChange={(e) => loadExample(e.target.value, { advanceToDefinitions: true })}
+            >
+              <option value="" disabled>
+                Select a scale...
+              </option>
               {exampleIds.map((id) => (
                 <option key={id} value={id}>
                   {id}
@@ -289,20 +303,12 @@ function App() {
                     <p>Compared with the dataset, this score is higher than {percentile.toFixed(1)}% of scales.</p>
                     <div className="meter">
                       <div className="meter-gradient" />
-                      <div className="meter-marker" style={{ left: `${percentile}%` }} />
+                      <div className="meter-marker" style={{ left: `${percentile}%` }}>
+                        <span className="meter-label">Current scale</span>
+                      </div>
                     </div>
                   </>
                 )}
-                <div className="stats-grid">
-                  <div className="stat-box">
-                    <span>Reference mean</span>
-                    <strong>{referenceMean !== null ? referenceMean.toFixed(3) : "N/A"}</strong>
-                  </div>
-                  <div className="stat-box">
-                    <span>Reference median</span>
-                    <strong>{referenceMedian !== null ? referenceMedian.toFixed(3) : "N/A"}</strong>
-                  </div>
-                </div>
                 {interpretationText && <p className="interpretation-text">{interpretationText}</p>}
 
                 <h3>Item similarities</h3>
@@ -349,7 +355,7 @@ function App() {
             Previous
           </button>
         )}
-        {step < STEP_COUNT - 1 && step !== 4 && (
+        {step < STEP_COUNT - 1 && step !== 1 && step !== 4 && (
           <button type="button" onClick={() => setStep((s) => Math.min(STEP_COUNT - 1, s + 1))}>
             Next
           </button>
