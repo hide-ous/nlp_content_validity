@@ -185,35 +185,59 @@ function App() {
         <div key={step} className="step-panel">
           {step === 0 && (
           <>
-            <h2>How this tool works</h2>
+            <h2>Welcome to ALCoVa</h2>
             <p>
-              This tool estimates scale validity by comparing item similarity to one focal definition
-              versus two orbiting definitions. You can start from an existing scale or write your own,
-              edit everything, choose a model, and then review both scale-level and item-level outputs.
+              <strong>Mettiamo un riferimento a un preprint?</strong>
             </p>
             <p>
-              The final result shows your predicted scale score against the dataset reference
-              distribution and shows each item&apos;s similarity to focal, orbiting 1, and orbiting 2.
+              ALCoVa (A Lightweight Content Validator) is a free, open-access web tool that helps you
+              assess the content validity of a scale: whether the items in your scale capture the meaning
+              of the construct you intend to measure (definitional correspondence) and whether they capture
+              it more strongly than related but distinct constructs (definitional distinctiveness).
+            </p>
+            <p>
+              The tool uses NLP models to compare each item against three definitions: one focal definition
+              (the construct you want to measure) and two orbiting definitions (related constructs from which
+              your scale should be distinguishable).
+            </p>
+            <h3>What you can do here</h3>
+            <ul>
+              <li>Start with an existing published scale from the literature, or build your own from scratch.</li>
+              <li>Edit definitions and items at any step, and rerun the analysis as often as you like.</li>
+              <li>
+                See a scale-level validity estimate (compared to a benchmark of 112 published scales) plus
+                an item-by-item breakdown.
+              </li>
+            </ul>
+            <p>
+              ALCoVa is a diagnostic aid, not a substitute for human content validation. Use it to refine
+              your items before collecting human ratings, not to replace them.
             </p>
           </>
           )}
 
           {step === 1 && (
           <>
-            <h2>Select scale</h2>
+            <h2>Step 2: Choose how to start</h2>
+            <p>You can begin in one of two ways. Pick the option that matches your goal.</p>
             <div className="choice-layout">
               <button
                 type="button"
                 className="ghost cta-choice"
                 onClick={() => loadExample("__custom__", { advanceToDefinitions: true })}
               >
-                Write your own scale
+                Option A - Start writing
               </button>
+              <p>
+                Recommended if you are developing a new measure. Enter your construct definitions and
+                items directly, then use ALCoVa as a real-time diagnostic while you draft, revise, and
+                refine your scale.
+              </p>
               <div className="choice-divider" aria-hidden="true">
                 <span>or</span>
               </div>
             </div>
-            <label htmlFor="scale-select">Choose a known scale</label>
+            <label htmlFor="scale-select">Option B - Load a published scale</label>
             <select
               id="scale-select"
               value={selectedId === "__custom__" ? "" : selectedId}
@@ -228,13 +252,30 @@ function App() {
                 </option>
               ))}
             </select>
+            <p>
+              Recommended if you are exploring the tool, or want a reference point. Choose one of 112
+              published scales from the Colquitt et al. (2019) benchmark, inspect performance, compare with
+              your own work, or modify items to see how changes affect predicted scores.
+            </p>
           </>
           )}
 
           {step === 2 && (
           <>
-            <h2>Edit definitions</h2>
+            <h2>Step 3: Define your constructs</h2>
+            <p>
+              Content validity assessment requires three definitions: the construct you want to measure,
+              plus two related constructs you want your scale to be distinguishable from.
+            </p>
+            <p>
+              Together they let the tool evaluate both correspondence (does the item capture the focal
+              construct?) and distinctiveness (does it capture the focal construct more than related ones?).
+            </p>
             <label htmlFor="focal-definition">Focal definition</label>
+            <p>
+              Provide a clear, complete definition. The text you enter here will be used as the reference
+              for every item.
+            </p>
             <textarea
               id="focal-definition"
               value={targetDef}
@@ -245,6 +286,12 @@ function App() {
             />
 
             <label htmlFor="orbiting-1">Orbiting definition 1</label>
+            <p>
+              Choose a construct that is conceptually close to the focal one but should not be confused
+              with it. Following Colquitt et al. (2019), good orbiting constructs sit at the same stage of
+              causal flow as the focal construct, do not stand in a part-whole relationship to it, and share
+              the same referent (for example, person, team, or organization).
+            </p>
             <textarea
               id="orbiting-1"
               value={adversaries[0]}
@@ -252,11 +299,20 @@ function App() {
             />
 
             <label htmlFor="orbiting-2">Orbiting definition 2</label>
+            <p>
+              Choose a different conceptually proximal construct. Two orbiting definitions provide a more
+              robust distinctiveness assessment than one.
+            </p>
             <textarea
               id="orbiting-2"
               value={adversaries[1]}
               onChange={(e) => setAdversary(1, e.target.value)}
             />
+            <p>
+              Tip: avoid orbiting constructs that are nearly synonymous with the focal one, or clearly
+              unrelated. The most informative orbiting constructs are close calls that researchers might
+              genuinely confuse.
+            </p>
             {!hasAllDefinitions && (
               <p className="warning">Please fill focal and both orbiting definitions before continuing.</p>
             )}
@@ -265,7 +321,26 @@ function App() {
 
           {step === 3 && (
           <>
-            <h2>Edit items</h2>
+            <h2>Step 4: Edit your items</h2>
+            <p>
+              These are the items evaluated against your focal and orbiting definitions. Each item should be
+              a single statement that a respondent would rate (for example, agree/disagree or never/always).
+            </p>
+            <h3>You can:</h3>
+            <ul>
+              <li>Edit any item by clicking in the text box.</li>
+              <li>Remove an item with the ✕ button.</li>
+              <li>Add new items with + Add item.</li>
+            </ul>
+            <p>
+              Tip for diagnostic use: try modifying a single word (for example, a verb or qualifier) and
+              rerun the analysis. Comparing before and after scores can reveal which item features drive the
+              predicted validity.
+            </p>
+            <p>
+              Multi-item scales typically include 3-7 items. Single-item measures are also supported but may
+              produce more compressed scores; see the paper for details.
+            </p>
             <div className="items-list">
               {items.map((item, idx) => (
                 <div key={idx} className="item-row">
@@ -297,7 +372,11 @@ function App() {
 
           {step === 4 && (
           <>
-            <h2>Select model</h2>
+            <h2>Step 5: Choose a model</h2>
+            <p>
+              ALCoVa offers two NLP models, each optimized for a different aspect of content validity.
+              Pick the one that best matches what you want to evaluate.
+            </p>
             <label htmlFor="model-select">Available models</label>
             <select
               id="model-select"
@@ -313,12 +392,21 @@ function App() {
                 </option>
               ))}
             </select>
+            <p>
+              <strong>sentence-t5-base</strong> is recommended for definitional correspondence (HTC). It is
+              a contextual sentence embedding model suited to fine-grained semantic alignment.
+            </p>
+            <p>
+              <strong>fasttext-wmd</strong> is recommended for definitional distinctiveness (HTD) and for
+              single-item measures. It offers transparent, word-level alignment via Word Mover&apos;s Distance.
+            </p>
+            <p>If you are unsure, run both models for complementary perspectives.</p>
           </>
           )}
 
           {step === 5 && (
           <>
-            <h2>Prediction results</h2>
+            <h2>Step 6: Your results</h2>
             {aggregatedScore !== null ? (
               <>
                 <p>
@@ -328,11 +416,14 @@ function App() {
                   <span aria-hidden="true">{directionSymbol}</span> {directionLabel}
                 </p>
                 <p>
-                  Predicted scale score: <strong>{aggregatedScore.toFixed(3)}</strong>
+                  Predicted content validity: <strong>{aggregatedScore.toFixed(3)}</strong>
                 </p>
                 {percentile !== null && (
                   <>
-                    <p>Compared with the dataset, this score is higher than {percentile.toFixed(1)}% of scales.</p>
+                    <p>
+                      Your scale ranks higher than <strong>{percentile.toFixed(1)}%</strong> of the 112
+                      published scales in the benchmark.
+                    </p>
                     <div className="meter">
                       <div className="meter-gradient" />
                       <div className="meter-marker" style={{ left: `${percentile}%` }}>
@@ -342,8 +433,17 @@ function App() {
                   </>
                 )}
                 {interpretationText && <p className="interpretation-text">{interpretationText}</p>}
+                <p>
+                  The predicted score reflects how well the tool expects your scale to perform under a human
+                  content-validity rating procedure (HTC x HTD). It is a probabilistic estimate, not a
+                  definitive judgment.
+                </p>
+                <p>
+                  Interpret scores in relative terms. Diagnostic value comes from the gap between focal and
+                  orbiting scores per item, and each item&apos;s relative position in your scale.
+                </p>
 
-                <h3>Item similarities</h3>
+                <h3>Item-level diagnostics</h3>
                 <div className="table-wrapper">
                   <table>
                     <thead>
@@ -366,6 +466,28 @@ function App() {
                     </tbody>
                   </table>
                 </div>
+                <h3>What to look for</h3>
+                <ul>
+                  <li>
+                    Strong correspondence and distinctiveness: focal should be substantially higher than both
+                    orbiting scores.
+                  </li>
+                  <li>
+                    Weak correspondence: focal is low relative to other items; revise wording to align with
+                    the focal definition.
+                  </li>
+                  <li>
+                    Weak distinctiveness: focal is close to or lower than an orbiting score; clarify wording
+                    to increase construct specificity.
+                  </li>
+                </ul>
+                <h3>Next steps</h3>
+                <ul>
+                  <li>Iterate: click Previous to refine items or definitions and rerun the analysis.</li>
+                  <li>Compare across models to check whether patterns converge.</li>
+                  <li>Document: save or screenshot outputs for scale development reports.</li>
+                  <li>Validate with humans: use ALCoVa to prioritize items for human review.</li>
+                </ul>
                 {edited && predictionMade && (
                   <p className="warning">Inputs changed since the last prediction. Run prediction again for fresh results.</p>
                 )}

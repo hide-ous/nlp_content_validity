@@ -69,6 +69,8 @@ def plot_scatter(dataset='colquitt_et_al', store=True, show=False):
                 transform=ax.transAxes)
 
     g.map_dataframe(annotate)
+    if dataset == 'matthews_et_al':
+        g.set_xlabels("focal_similarity")
 
     all_handles, all_labels = list(), list()
     for ax in g.axes:
