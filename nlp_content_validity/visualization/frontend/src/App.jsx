@@ -187,9 +187,6 @@ function App() {
           <>
             <h2>Welcome to ALCoVa</h2>
             <p>
-              <strong>Mettiamo un riferimento a un preprint?</strong>
-            </p>
-            <p>
               ALCoVa (A Lightweight Content Validator) is a free, open-access web tool that helps you
               assess the content validity of a scale: whether the items in your scale capture the meaning
               of the construct you intend to measure (definitional correspondence) and whether they capture
