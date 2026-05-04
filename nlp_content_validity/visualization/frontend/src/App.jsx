@@ -175,7 +175,7 @@ function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>Scale Validity Predictor</h1>
+        <h1>Content Validity Predictor</h1>
         <p className="step-caption">
           Step {step + 1} of {STEP_COUNT}
         </p>
